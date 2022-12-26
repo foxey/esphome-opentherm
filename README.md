@@ -1,4 +1,4 @@
-[![build](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yml/badge.svg)](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yaml)
+[![build](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yaml/badge.svg)](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yaml)
 
 # Work in progress!
 
