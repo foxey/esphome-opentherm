@@ -19,4 +19,4 @@ jobs:
           "ha_api_encryption_key: \"HpbadwBmrXbQwRrYwIHC75UHPeJpyRf/djUwgpB+WiI=\"\n"\
           "wifi_ssid: \"wifi_ssid\"\n"\
           "wifi_password: \"wifi_password\"" > secrets.yaml
-      - run: docker run --rm -v "${PWD}":/config esphome/esphome compile opentherm.yaml
+      - run: docker run --rm -v "${PWD}":/config esphome/esphome compile example_opentherm.yaml
