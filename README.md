@@ -1,3 +1,9 @@
+[![build](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yml/badge.svg)](https://github.com/esphome-opentherm/actions/workflows/build.yml)
+
+# Work in progress!
+
+This component is not actually working until this notice has been removed.
+
 # What does this implement?
 
 This component provides support for opentherm devices such as:
@@ -17,76 +23,18 @@ and a few [Template Outputs](https://esphome.io/components/output/template.html)
 As this is my first component, I'm also looking for constructive criticism on how to enhance this
 component where needed.
 
-## Note
+## Notes
 
-This component is currently also in an [open PR to esphome](https://github.com/esphome/esphome/pull/3921),
+This component is a fork of [khenderick/esphome-opentherm](https://github.com/khenderick/esphome-opentherm) and adapted to support operating in gateway mode. It is connected both to an OpenTherm master device (typically a thermostat) and an OpenTherm slave device (typically a CH boiler) and forwards all messages from the master to the slave.
+
+[@hendrick](https://github.com/khenderick)'s component is currently also in an [open PR to esphome](https://github.com/esphome/esphome/pull/3921),
 but has currently a low chance of acceptance since it uses a ~32ms delay in `loop()`. This should be
 rewritten to work async.
 
 Feel free to help me out and open a PR with improvements.
 
-## Example entry for `config.yaml`:
+## Example usage:
 
-```yaml
-external_components:
-  source: github://khenderick/esphome-opentherm
-  components: [opentherm]
-
-opentherm:
-  read_pin: 21
-  write_pin: 22
-
-sensor:
-  - platform: opentherm
-    ch_min_temperature:
-      name: "CH minimum temperature"
-    ch_max_temperature:
-      name: "CH maximum temperature"
-    dhw_min_temperature:
-      name: "DHW minimum temperature"
-    dhw_max_temperature:
-      name: "DHW maximum temperature"
-    pressure:
-      name: "pressure"
-    modulation:
-      name: "modulation"
-    boiler_temperature:
-      name: "boiler temperature"
-    return_temperature:
-      name: "return temperature"
-
-binary_sensor:
-  - platform: opentherm
-    ch_active:
-      name: "CH active"
-    dhw_active:
-      name: "DHW active"
-    flame_active:
-      name: "flame active"
-    fault:
-      name: "fault"
-    diagnostic:
-      name: "diagnostic"
-
-switch:
-  - platform: opentherm
-    ch_enabled:
-      name: "CH enabled"
-    dhw_enabled:
-      name: "DHW enabled"
-
-number:
-  - platform: opentherm
-    ch_setpoint_temperature:
-      name: "CH setpoint temperature"
-      min_value: 20.0
-      max_value: 45.0
-      step: 0.5
-      restore_value: true
-    dhw_setpoint_temperature:
-      name: "DHW setpoint temperature"
-      min_value: 38.0
-      max_value: 60.0
-      step: 0.5
-      restore_value: true
+```bash
+esphome compile example_opentherm.yaml && esphome upload example_opentherm.yaml
 ```

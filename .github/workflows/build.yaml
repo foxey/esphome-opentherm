@@ -1,0 +1,22 @@
+name: build
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 0 * * *'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          echo -e "ha_api_password: \"XzE$MY2S&BoK^d^&wzmuEMar257Uq\"\n"\
+          "ha_api_encryption_key: \"HpbadwBmrXbQwRrYwIHC75UHPeJpyRf/djUwgpB+WiI=\"\n"\
+          "wifi_ssid: \"wifi_ssid\"\n"\
+          "wifi_password: \"wifi_password\"" > secrets.yaml
+      - run: docker run --rm -v "${PWD}":/config esphome/esphome compile opentherm.yaml
