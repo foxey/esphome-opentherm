@@ -31,12 +31,15 @@ logger:
   esp8266_store_log_strings_in_flash: False
 
 external_components:
-  source: github://foxey/esphome-opentherm
+#  source: github://foxey/esphome-opentherm
+  source: components
   components: [opentherm]
 
 opentherm:
   slave_read_pin: 12
   slave_write_pin: 13
+  master_read_pin: 4
+  master_write_pin: 5
 
 sensor:
   - platform: opentherm

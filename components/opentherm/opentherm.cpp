@@ -13,9 +13,12 @@ namespace opentherm {
 
 // All public method implementations
 
-void OpenThermComponent::set_pins(InternalGPIOPin *slave_read_pin, InternalGPIOPin *slave_write_pin) {
+void OpenThermComponent::set_pins(InternalGPIOPin *slave_read_pin, InternalGPIOPin *slave_write_pin,
+  InternalGPIOPin *master_read_pin, InternalGPIOPin *master_write_pin) {
   this->slave_read_pin_ = slave_read_pin;
   this->slave_write_pin_ = slave_write_pin;
+  this->master_read_pin_ = master_read_pin;
+  this->master_write_pin_ = master_write_pin;
 }
 
 void OpenThermComponent::setup() {
