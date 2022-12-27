@@ -43,7 +43,7 @@ class OpenThermComponent : public PollingComponent {
   void loop() override;
   void dump_config() override;
   static void handle_interrupt(OpenThermComponent *component);
-  void set_pins(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin);
+  void set_pins(InternalGPIOPin *slave_read_pin, InternalGPIOPin *slave_write_pin);
 
   void set_ch_min_temperature_sensor(sensor::Sensor *sensor) { ch_min_temperature_sensor_ = sensor; }
   void set_ch_max_temperature_sensor(sensor::Sensor *sensor) { ch_max_temperature_sensor_ = sensor; }
@@ -68,9 +68,9 @@ class OpenThermComponent : public PollingComponent {
   }
 
  private:
-  InternalGPIOPin *read_pin_;
-  InternalGPIOPin *write_pin_;
-  ISRInternalGPIOPin isr_read_pin_;
+  InternalGPIOPin *slave_read_pin_;
+  InternalGPIOPin *slave_write_pin_;
+  ISRInternalGPIOPin isr_slave_read_pin_;
 
   std::queue<uint32_t> buffer_;
   bool ch_min_max_read_ = false;

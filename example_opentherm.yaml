@@ -35,8 +35,8 @@ external_components:
   components: [opentherm]
 
 opentherm:
-  read_pin: 12
-  write_pin: 13
+  slave_read_pin: 12
+  slave_write_pin: 13
 
 sensor:
   - platform: opentherm
