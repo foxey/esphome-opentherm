@@ -6,12 +6,12 @@ namespace opentherm {
 enum OpenThermResponseStatus { NONE, SUCCESS, INVALID, TIMEOUT };
 
 enum OpenThermMessageType {
-  /*  Device to Boiler */
+  /*  Controller to Responder */
   READ_DATA = 0b000,
   WRITE_DATA = 0b001,
   INVALID_DATA = 0b010,
   RESERVED = 0b011,
-  /* Boiler to Device */
+  /* Responder to Controller */
   READ_ACK = 0b100,
   WRITE_ACK = 0b101,
   DATA_INVALID = 0b110,
@@ -20,18 +20,18 @@ enum OpenThermMessageType {
 
 enum OpenThermMessageID {
   // Class 1: Control and Status Information
-  STATUS = 0,                 // flag8 / flag8 -> Device and Boiler Status flags.
+  STATUS = 0,                 // flag8 / flag8 -> Controller and Responder Status flags.
   CH_SETPOINT = 1,            // f8.8 -> Control setpoint for CH circuit (°C)
   APP_SPEC_FAULT_FLAGS = 5,   // flag8 / u8 -> Application-specific fault flags and OEM fault code
   CH_SETPOINT_2 = 8,          // f8.8 -> Control setpoint for 2nd CH circuit (°C)
   OEM_DIAGNOSTIC_CODE = 115,  // u16 -> OEM-specific diagnostic/service code
   // Class 2: Configuration Information
-  DEVICE_CONFIGURATION = 2,  // flag8 / u8 -> Device Configuration Flags / Device MemberID Code
-  BOILER_CONFIGURATION = 3,  // flag8 / u8 -> Boiler Configuration Flags / Boiler MemberID Code
-  OT_VERSION_DEVICE = 124,   // f8.8 -> The implemented version of the OpenTherm Protocol Specification in the device.
-  OT_VERSION_BOILER = 125,   // f8.8 - The implemented version of the OpenTherm Protocol Specification in the boiler.
-  DEVICE_VERSION = 126,      // u8 / u8 -> Device product version number and type
-  BOILER_VERSION = 127,      // u8 / u8 -> Boiler product version number and type
+  CONTROLLER_CONFIGURATION = 2,  // flag8 / u8 -> Controller Configuration Flags / Controller MemberID Code
+  RESPONDER_CONFIGURATION = 3,  // flag8 / u8 -> Responder Configuration Flags / Responder MemberID Code
+  OT_VERSION_CONTROLLER = 124,   // f8.8 -> The implemented version of the OpenTherm Protocol Specification in the device.
+  OT_VERSION_RESPONDER = 125,   // f8.8 - The implemented version of the OpenTherm Protocol Specification in the boiler.
+  CONTROLLER_VERSION = 126,      // u8 / u8 -> Controller product version number and type
+  RESPONDER_VERSION = 127,      // u8 / u8 -> Responder product version number and type
   // Class 3: Remote Commands
   COMMAND = 4,  // u8 / u8 -> Remote Command
   // Class 4: Sensor and Informational Data
@@ -52,7 +52,7 @@ enum OpenThermMessageID {
   SOLAR_COLL_TEMP = 30,            // f8.8 -> Solar collector temperature (°C)
   BOILER_WATER_TEMP_2 = 31,        // f8.8 -> Flow water temperature CH2 circuit (°C)
   DHW_TEMP_2 = 32,                 // f8.8 -> Domestic hot water temperature 2 (°C)
-  BOILER_EXHAUST_TEMP = 33,        // s16 -> Boiler exhaust temperature (°C)
+  EXHAUST_TEMP = 33,               // s16 -> Exhaust temperature (°C)
   BURNER_STARTS = 116,             // u16 -> Number of starts burner
   CH_PUMP_STARTS = 117,            // u16 -> Number of starts CH pump
   DHW_PUMP_VALVE_STARTS = 118,     // u16 -> Number of starts DHW pump/valve
@@ -67,8 +67,8 @@ enum OpenThermMessageID {
   CH_TEMP_MAX_MIN = 49,    // s8 / s8 -> Max CH water setpoint upper & lower bounds for adjustment (°C)
   DHW_SETPOINT = 56,       // f8.8 -> DHW setpoint (°C) (Remote parameter 1)
   MAX_CH_SETPOINT = 57,    // f8.8 -> Max CH water setpoint (°C) (Remote parameters 2)
-  // Class 6: Transparent Boiler Parameters
-  NR_OF_TSPS = 10,       // u8 / u8 -> Number of Transparent-Boiler-Parameters supported by boiler
+  // Class 6: Transparent Responder Parameters
+  NR_OF_TSPS = 10,       // u8 / u8 -> Number of Transparent-Responder-Parameters supported by boiler
   TSP_INDEX_VALUE = 11,  // u8 / u8 -> Index number / Value of referred-to transparent boiler parameter.
   // Class 7: Fault History Data
   FHB_SIZE = 12,         // u8 / u8 -> Size of Fault-History-Buffer supported by boiler
