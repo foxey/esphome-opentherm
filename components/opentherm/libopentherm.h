@@ -43,11 +43,11 @@ public:
   void process();
   void end();
 
-  bool parity(uint32_t frame);
-  OpenThermMessageType get_message_type(uint32_t message);
-  OpenThermMessageID get_data_id(uint32_t frame);
-  const char *message_type_to_string(OpenThermMessageType message_type);
-  const char *opentherm_message_id_to_string(uint32_t frame);
+  static bool parity(uint32_t frame);
+  static OpenThermMessageType get_message_type(uint32_t message);
+  static OpenThermMessageID get_data_id(uint32_t frame);
+  static const char *message_type_to_string(OpenThermMessageType message_type);
+  static const char *message_id_to_string(uint32_t frame);
   bool is_valid_request(uint32_t request);
   bool is_valid_response(uint32_t response);
 

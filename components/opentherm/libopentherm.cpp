@@ -191,42 +191,42 @@ void IRAM_ATTR OpenTherm::handle_interrupt(OpenTherm *opentherm)
 
 void OpenTherm::process()
 {
-  OpenThermStatus st = OpenThermStatus::NOT_INITIALIZED;
-  uint32_t ts = 0;
+  OpenThermStatus status = OpenThermStatus::NOT_INITIALIZED;
+  uint32_t timestamp = 0;
   {
     InterruptLock lock;
-    st = this->status_;
-    ts = this->response_timestamp_;
+    status = this->status_;
+    timestamp = this->response_timestamp_;
   }
 
-  if (st == OpenThermStatus::READY) {
+  if (status == OpenThermStatus::READY) {
     return;
   }
   
-  uint32_t newTs = micros();
-  if (st != OpenThermStatus::NOT_INITIALIZED && st != OpenThermStatus::DELAY && (newTs - ts) > 1000000) {
+  uint32_t new_timestamp = micros();
+  if (status != OpenThermStatus::NOT_INITIALIZED && status != OpenThermStatus::DELAY && (new_timestamp - timestamp) > 1000000) {
     this->status_ = OpenThermStatus::READY;
     this->response_status_ = OpenThermResponseStatus::TIMEOUT;
     if (this->process_response_callback_ != nullptr) {
       this->process_response_callback_(this->response_, this->response_status_);
     }
   }
-  else if (st == OpenThermStatus::RESPONSE_INVALID) {
+  else if (status == OpenThermStatus::RESPONSE_INVALID) {
     this->status_ = OpenThermStatus::DELAY;
     this->response_status_ = OpenThermResponseStatus::INVALID;
     if (this->process_response_callback_ != nullptr) {
       this->process_response_callback_(this->response_, this->response_status_);
     }
   }
-  else if (st == OpenThermStatus::RESPONSE_READY) {
+  else if (status == OpenThermStatus::RESPONSE_READY) {
     this->status_ = OpenThermStatus::DELAY;
     this->response_status_ = (this->is_responder_ ? this->is_valid_request(this->response_) : this->is_valid_response(this->response_)) ? OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
     if (this->process_response_callback_ != nullptr) {
       this->process_response_callback_(this->response_, this->response_status_);
     }
   }
-  else if (st == OpenThermStatus::DELAY) {
-    if ((newTs - ts) > 100000) {
+  else if (status == OpenThermStatus::DELAY) {
+    if ((new_timestamp - timestamp) > 100000) {
       this->status_ = OpenThermStatus::READY;
     }
   }
@@ -261,7 +261,7 @@ uint32_t OpenTherm::build_request(OpenThermMessageType type, OpenThermMessageID 
     request |= 1ul << 28;
   }
   request |= ((uint32_t)id) << 16;
-  if (parity(request)) request |= (1ul << 31);
+  if (OpenTherm::parity(request)) request |= (1ul << 31);
   return request;
 }
 
@@ -270,20 +270,20 @@ uint32_t OpenTherm::build_response(OpenThermMessageType type, OpenThermMessageID
   uint32_t response = data;
   response |= type << 28;
   response |= ((uint32_t)id) << 16;
-  if (parity(response)) response |= (1ul << 31);
+  if (OpenTherm::parity(response)) response |= (1ul << 31);
   return response;
 }
 
 bool OpenTherm::is_valid_response(uint32_t response)
 {
-  if (this->parity(response)) return false;
+  if (OpenTherm::parity(response)) return false;
   uint8_t msg_type = (response << 1) >> 29;
   return msg_type == READ_ACK || msg_type == WRITE_ACK;
 }
 
 bool OpenTherm::is_valid_request(uint32_t request)
 {
-  if (this->parity(request)) return false;
+  if (OpenTherm::parity(request)) return false;
   uint8_t msg_type = (request << 1) >> 29;
   return msg_type == READ_DATA || msg_type == WRITE_DATA;
 }
@@ -329,8 +329,8 @@ const char *OpenTherm::message_type_to_string(OpenThermMessageType message_type)
   }
 }
 
-const char *OpenTherm::opentherm_message_id_to_string(uint32_t frame) {
-    switch (this->get_data_id(frame)) {
+const char *OpenTherm::message_id_to_string(uint32_t frame) {
+    switch (OpenTherm::get_data_id(frame)) {
   // Class 1: Control and Status Information
         case OpenThermMessageID::STATUS: return "STATUS";
         case OpenThermMessageID::CH_SETPOINT: return "CH_SETPOINT";

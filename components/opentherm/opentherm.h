@@ -9,6 +9,7 @@
 #include "number/custom_number.h"
 #include "consts.h"
 #include "enums.h"
+#include "libopentherm.h"
 #include <queue>
 
 namespace esphome {
@@ -68,7 +69,7 @@ class OpenThermComponent : public PollingComponent {
     dhw_setpoint_temperature_number_ = number;
   }
 
- private:
+ protected:
   InternalGPIOPin *responder_read_pin_;
   InternalGPIOPin *responder_write_pin_;
   ISRInternalGPIOPin isr_responder_read_pin_;
@@ -76,6 +77,8 @@ class OpenThermComponent : public PollingComponent {
   InternalGPIOPin *controller_read_pin_;
   InternalGPIOPin *controller_write_pin_;
   ISRInternalGPIOPin isr_controller_read_pin_;
+
+  OpenTherm *controller_;
 
   std::queue<uint32_t> buffer_;
   bool ch_min_max_read_ = false;
