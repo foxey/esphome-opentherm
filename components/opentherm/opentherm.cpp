@@ -5,6 +5,7 @@
  */
 
 #include "opentherm.h"
+#include "libopentherm.h"
 #include "esphome/core/log.h"
 #include <vector>
 
@@ -19,15 +20,18 @@ void OpenThermComponent::set_pins(InternalGPIOPin *responder_read_pin, InternalG
   this->responder_write_pin_ = responder_write_pin;
   this->controller_read_pin_ = controller_read_pin;
   this->controller_write_pin_ = controller_write_pin;
+
+  OpenTherm controller = OpenTherm(controller_read_pin, controller_write_pin);
+  this->controller_ = &controller;
 }
 
 void OpenThermComponent::setup() {
-  this->responder_read_pin_->setup();
-  this->isr_responder_read_pin_ = this->responder_read_pin_->to_isr();
-  this->responder_read_pin_->attach_interrupt(&OpenThermComponent::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);
-  this->responder_write_pin_->setup();
+  this->controller_read_pin_->setup();
+  this->isr_controller_read_pin_ = this->controller_read_pin_->to_isr();
+  this->controller_read_pin_->attach_interrupt(&OpenThermComponent::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);
+  this->controller_write_pin_->setup();
 
-  this->responder_write_pin_->digital_write(true);
+  this->controller_write_pin_->digital_write(true);
   delay(25);
   this->status_ = OpenThermStatus::READY;
 
@@ -116,8 +120,8 @@ void OpenThermComponent::update() {
 
 void OpenThermComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "OpenTherm:");
-  LOG_PIN("  Write Pin: ", this->responder_write_pin_);
-  LOG_PIN("  Read Pin: ", this->responder_read_pin_);
+  LOG_PIN("  Controller Write Pin: ", this->controller_write_pin_);
+  LOG_PIN("  Controller Read Pin: ", this->controller_read_pin_);
   LOG_SENSOR("  ", "CH min temperature:", this->ch_min_temperature_sensor_);
   LOG_SENSOR("  ", "CH max temperature:", this->ch_max_temperature_sensor_);
   LOG_SENSOR("  ", "DHW min temperature:", this->dhw_min_temperature_sensor_);
@@ -149,7 +153,7 @@ void IRAM_ATTR OpenThermComponent::handle_interrupt(OpenThermComponent *componen
   }
 
   uint32_t new_ts = micros();
-  bool pin_state = component->isr_responder_read_pin_.digital_read();
+  bool pin_state = component->isr_controller_read_pin_.digital_read();
   if (component->status_ == OpenThermStatus::RESPONSE_WAITING) {
     if (pin_state) {
       component->status_ = OpenThermStatus::RESPONSE_START_BIT;
@@ -186,26 +190,26 @@ void IRAM_ATTR OpenThermComponent::handle_interrupt(OpenThermComponent *componen
 void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, uint32_t message) {
   switch (level) {
     case 0:
-      ESP_LOGD(TAG, "%s: %s(%i, 0x%04hX)", pre_message, this->format_message_type_(message),
-               this->get_data_id_(message), this->get_uint16_(message));
+      ESP_LOGD(TAG, "%s: %s(%s, 0x%04hX)", pre_message, this->format_message_type_(message),
+               OpenTherm::message_id_to_string(message), this->get_uint16_(message));
       break;
     default:
-      ESP_LOGW(TAG, "%s: %s(%i, 0x%04hX)", pre_message, this->format_message_type_(message),
-               this->get_data_id_(message), this->get_uint16_(message));
+      ESP_LOGW(TAG, "%s: %s(%s, 0x%04hX)", pre_message, this->format_message_type_(message),
+               OpenTherm::message_id_to_string(message), this->get_uint16_(message));
   }
 }
 
 void OpenThermComponent::send_bit_(bool high) {
   if (high) {
-    this->responder_write_pin_->digital_write(false);
+    this->controller_write_pin_->digital_write(false);
   } else {
-    this->responder_write_pin_->digital_write(true);
+    this->controller_write_pin_->digital_write(true);
   }
   delayMicroseconds(500);
   if (high) {
-    this->responder_write_pin_->digital_write(true);
+    this->controller_write_pin_->digital_write(true);
   } else {
-    this->responder_write_pin_->digital_write(false);
+    this->controller_write_pin_->digital_write(false);
   }
   delayMicroseconds(500);
 }
@@ -230,7 +234,7 @@ bool OpenThermComponent::send_request_async_(uint32_t request) {
     this->send_bit_(request >> i & 1);
   }
   this->send_bit_(true);  // Stop bit
-  this->responder_write_pin_->digital_write(true);
+  this->controller_write_pin_->digital_write(true);
 
   this->status_ = OpenThermStatus::RESPONSE_WAITING;
   this->response_timestamp_ = micros();
