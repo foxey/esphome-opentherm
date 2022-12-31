@@ -20,20 +20,11 @@ void OpenThermComponent::set_pins(InternalGPIOPin *responder_read_pin, InternalG
   this->responder_write_pin_ = responder_write_pin;
   this->controller_read_pin_ = controller_read_pin;
   this->controller_write_pin_ = controller_write_pin;
-
-  OpenTherm controller = OpenTherm(controller_read_pin, controller_write_pin);
-  this->controller_ = &controller;
 }
 
 void OpenThermComponent::setup() {
-  this->controller_read_pin_->setup();
-  this->isr_controller_read_pin_ = this->controller_read_pin_->to_isr();
-  this->controller_read_pin_->attach_interrupt(&OpenThermComponent::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);
-  this->controller_write_pin_->setup();
-
-  this->controller_write_pin_->digital_write(true);
-  delay(25);
-  this->status_ = OpenThermStatus::READY;
+  this->controller_.setup(this->controller_read_pin_, this->controller_write_pin_);
+  this->controller_.begin();
 
   if (this->ch_enabled_switch_) {
     this->ch_enabled_switch_->add_on_state_callback([this](bool enabled) {
@@ -75,22 +66,23 @@ void OpenThermComponent::setup() {
 }
 
 void OpenThermComponent::loop() {
-  if (this->status_ == OpenThermStatus::READY && !buffer_.empty()) {
+  if (this->controller_.is_ready() && !buffer_.empty()) {
     uint32_t request = buffer_.front();
     buffer_.pop();
-    this->log_message_(0, "Sending request", request);
-    this->send_request_async_(request);
+    this->controller_.send_request_async(request);
+    this->log_message_(0, "Request sent", request);
   }
-  if (millis() - last_millis_ > 2000) {
+
+  if (millis() - this->last_millis_ > 2000) {
     // The CH setpoint must be written at a fast interval or the boiler
     // might revert to a build-in default as a safety measure.
-    last_millis_ = millis();
+    this->last_millis_ = millis();
     this->enqueue_request_(
-        this->build_request_(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::CH_SETPOINT,
+        OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::CH_SETPOINT,
                              this->temperature_to_data_(this->ch_setpoint_temperature_number_->state)));
     if (this->confirmed_dhw_setpoint_ != this->dhw_setpoint_temperature_number_->state) {
       this->enqueue_request_(
-          this->build_request_(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT,
+          OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT,
                                this->temperature_to_data_(this->dhw_setpoint_temperature_number_->state)));
     }
   }
@@ -100,20 +92,20 @@ void OpenThermComponent::loop() {
 
 void OpenThermComponent::update() {
   this->enqueue_request_(
-      this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::RETURN_WATER_TEMP, 0));
+      OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::RETURN_WATER_TEMP, 0));
   this->enqueue_request_(
-      this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::BOILER_WATER_TEMP, 0));
-  this->enqueue_request_(this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_PRESSURE, 0));
-  this->enqueue_request_(this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::REL_MOD_LEVEL, 0));
+      OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::BOILER_WATER_TEMP, 0));
+  this->enqueue_request_(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_PRESSURE, 0));
+  this->enqueue_request_(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::REL_MOD_LEVEL, 0));
   this->enqueue_request_(
-      this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::REMOTE_PARAM_FLAGS, 0));
+      OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::REMOTE_PARAM_FLAGS, 0));
   if (!this->dhw_min_max_read_) {
     this->enqueue_request_(
-        this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::DHW_TEMP_MAX_MIN, 0));
+        OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::DHW_TEMP_MAX_MIN, 0));
   }
   if (!this->ch_min_max_read_) {
     this->enqueue_request_(
-        this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_TEMP_MAX_MIN, 0));
+        OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_TEMP_MAX_MIN, 0));
   }
   this->set_boiler_status_();
 }
@@ -147,44 +139,6 @@ void OpenThermComponent::dump_config() {
   }
 }
 
-void IRAM_ATTR OpenThermComponent::handle_interrupt(OpenThermComponent *component) {
-  if (component->status_ == OpenThermStatus::READY) {
-    return;
-  }
-
-  uint32_t new_ts = micros();
-  bool pin_state = component->isr_controller_read_pin_.digital_read();
-  if (component->status_ == OpenThermStatus::RESPONSE_WAITING) {
-    if (pin_state) {
-      component->status_ = OpenThermStatus::RESPONSE_START_BIT;
-      component->response_timestamp_ = new_ts;
-    } else {
-      component->status_ = OpenThermStatus::RESPONSE_INVALID;
-      component->response_timestamp_ = new_ts;
-    }
-  } else if (component->status_ == OpenThermStatus::RESPONSE_START_BIT) {
-    if ((new_ts - component->response_timestamp_ < 750) && !pin_state) {
-      component->status_ = OpenThermStatus::RESPONSE_RECEIVING;
-      component->response_timestamp_ = new_ts;
-      component->response_bit_index_ = 0;
-    } else {
-      component->status_ = OpenThermStatus::RESPONSE_INVALID;
-      component->response_timestamp_ = new_ts;
-    }
-  } else if (component->status_ == OpenThermStatus::RESPONSE_RECEIVING) {
-    if ((new_ts - component->response_timestamp_) > 750) {
-      if (component->response_bit_index_ < 32) {
-        component->response_ = (component->response_ << 1) | !pin_state;
-        component->response_timestamp_ = new_ts;
-        component->response_bit_index_++;
-      } else {  // stop bit
-        component->status_ = OpenThermStatus::RESPONSE_READY;
-        component->response_timestamp_ = new_ts;
-      }
-    }
-  }
-}
-
 // Private
 
 void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, uint32_t message) {
@@ -199,127 +153,69 @@ void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, ui
   }
 }
 
-void OpenThermComponent::send_bit_(bool high) {
-  if (high) {
-    this->controller_write_pin_->digital_write(false);
-  } else {
-    this->controller_write_pin_->digital_write(true);
-  }
-  delayMicroseconds(500);
-  if (high) {
-    this->controller_write_pin_->digital_write(true);
-  } else {
-    this->controller_write_pin_->digital_write(false);
-  }
-  delayMicroseconds(500);
-}
-
-bool OpenThermComponent::send_request_async_(uint32_t request) {
-  bool ready = false;
-  {
-    InterruptLock lock;
-    ready = this->status_ == OpenThermStatus::READY;
-  }
-
-  if (!ready) {
-    return false;
-  }
-
-  this->status_ = OpenThermStatus::REQUEST_SENDING;
-  this->response_ = 0;
-  this->response_status_ = OpenThermResponseStatus::NONE;
-
-  this->send_bit_(true);  // Start bit
-  for (int i = 31; i >= 0; i--) {
-    this->send_bit_(request >> i & 1);
-  }
-  this->send_bit_(true);  // Stop bit
-  this->controller_write_pin_->digital_write(true);
-
-  this->status_ = OpenThermStatus::RESPONSE_WAITING;
-  this->response_timestamp_ = micros();
-  return true;
-}
-
 void OpenThermComponent::process_() {
-  OpenThermStatus st = OpenThermStatus::NOT_INITIALIZED;
-  uint32_t ts = 0;
-  {
-    InterruptLock lock;
-    st = this->status_;
-    ts = this->response_timestamp_;
+  this->controller_.process();
+  // OpenThermStatus status = this->controller_.get_status();
+  OpenThermResponseStatus response_status = this->controller_.get_response_status();
+  uint32_t response = this->controller_.get_response();
+
+  // ESP_LOGD(TAG, "status: %s, response_status: %s", OpenTherm::status_to_string(status),
+  //   OpenTherm::response_status_to_string(response_status));
+
+  // if (status == OpenThermStatus::READY && response_status == OpenThermResponseStatus::TIMEOUT) {
+  //   this->process_response_(response, response_status);
+  // } else if (status == OpenThermStatus::DELAY && response_status != OpenThermResponseStatus::NONE) {
+  //   this->process_response_(response, response_status);  
+  // }
+  
+  if (response_status != OpenThermResponseStatus::NONE) {
+    this->process_response_(response, response_status);
+    this->controller_.reset_response_status();
   }
 
-  if (st == OpenThermStatus::READY) {
-    return;
-  }
-
-  uint32_t new_ts = micros();
-  if (st != OpenThermStatus::NOT_INITIALIZED && st != OpenThermStatus::DELAY && (new_ts - ts) > 1000000) {
-    this->status_ = OpenThermStatus::READY;
-    this->response_status_ = OpenThermResponseStatus::TIMEOUT;
-    this->process_response_(this->response_, this->response_status_);
-  } else if (st == OpenThermStatus::RESPONSE_INVALID) {
-    this->status_ = OpenThermStatus::DELAY;
-    this->response_status_ = OpenThermResponseStatus::INVALID;
-    this->process_response_(this->response_, this->response_status_);
-  } else if (st == OpenThermStatus::RESPONSE_READY) {
-    this->status_ = OpenThermStatus::DELAY;
-    this->response_status_ =
-        this->is_valid_response_(this->response_) ? OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
-    this->process_response_(this->response_, this->response_status_);
-  } else if (st == OpenThermStatus::DELAY) {
-    if ((new_ts - ts) > 100000) {
-      this->status_ = OpenThermStatus::READY;
-    }
-  }
 }
 
-bool OpenThermComponent::parity_(uint32_t frame)  // odd parity
-{
-  uint8_t p = 0;
-  while (frame > 0) {
-    if (frame & 1)
-      p++;
-    frame = frame >> 1;
-  }
-  return (p & 1);
-}
+// void OpenThermComponent::process_() {
+//   OpenThermStatus st = OpenThermStatus::NOT_INITIALIZED;
+//   uint32_t ts = 0;
+//   {
+//     InterruptLock lock;
+//     st = this->status_;
+//     ts = this->response_timestamp_;
+//   }
+
+//   if (st == OpenThermStatus::READY) {
+//     return;
+//   }
+
+//   uint32_t new_timestamp = micros();
+//   if (st != OpenThermStatus::NOT_INITIALIZED && st != OpenThermStatus::DELAY && (new_timestamp - ts) > 1000000) {
+//     this->status_ = OpenThermStatus::READY;
+//     this->response_status_ = OpenThermResponseStatus::TIMEOUT;
+//     this->process_response_(this->response_, this->response_status_);
+//   } else if (st == OpenThermStatus::RESPONSE_INVALID) {
+//     this->status_ = OpenThermStatus::DELAY;
+//     this->response_status_ = OpenThermResponseStatus::INVALID;
+//     this->process_response_(this->response_, this->response_status_);
+//   } else if (st == OpenThermStatus::RESPONSE_READY) {
+//     this->status_ = OpenThermStatus::DELAY;
+//     this->response_status_ =
+//         OpenTherm::is_valid_response(this->response_) ? OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
+//     this->process_response_(this->response_, this->response_status_);
+//   } else if (st == OpenThermStatus::DELAY) {
+//     if ((new_timestamp - ts) > 100000) {
+//       this->status_ = OpenThermStatus::READY;
+//     }
+//   }
+// }
 
 OpenThermMessageType OpenThermComponent::get_message_type_(uint32_t message) {
-  OpenThermMessageType msg_type = static_cast<OpenThermMessageType>((message >> 28) & 7);
-  return msg_type;
+  OpenThermMessageType messsage_type = static_cast<OpenThermMessageType>((message >> 28) & 7);
+  return messsage_type;
 }
 
 OpenThermMessageID OpenThermComponent::get_data_id_(uint32_t frame) {
   return (OpenThermMessageID)((frame >> 16) & 0xFF);
-}
-
-uint32_t OpenThermComponent::build_request_(OpenThermMessageType type, OpenThermMessageID id, unsigned int data) {
-  uint32_t request = data;
-  if (type == OpenThermMessageType::WRITE_DATA) {
-    request |= 1ul << 28;
-  }
-  request |= ((uint32_t) id) << 16;
-  if (this->parity_(request))
-    request |= (1ul << 31);
-  return request;
-}
-
-uint32_t OpenThermComponent::build_response_(OpenThermMessageType type, OpenThermMessageID id, unsigned int data) {
-  uint32_t response = data;
-  response |= type << 28;
-  response |= ((uint32_t) id) << 16;
-  if (this->parity_(response))
-    response |= (1ul << 31);
-  return response;
-}
-
-bool OpenThermComponent::is_valid_response_(uint32_t response) {
-  if (this->parity_(response))
-    return false;
-  uint8_t msg_type = (response << 1) >> 29;
-  return msg_type == READ_ACK || msg_type == WRITE_ACK;
 }
 
 const char *OpenThermComponent::message_type_to_string_(OpenThermMessageType message_type) {
@@ -413,7 +309,7 @@ void OpenThermComponent::set_boiler_status_() {
   unsigned int data = this->wanted_ch_enabled_ | (this->wanted_dhw_enabled_ << 1) |
                       (this->wanted_cooling_enabled_ << 2) | (false << 3) | (false << 4);
   data <<= 8;
-  this->enqueue_request_(this->build_request_(OpenThermMessageType::READ_DATA, OpenThermMessageID::STATUS, data));
+  this->enqueue_request_(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::STATUS, data));
 }
 
 void OpenThermComponent::enqueue_request_(uint32_t request) {

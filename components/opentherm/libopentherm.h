@@ -26,7 +26,10 @@ namespace opentherm {
 class OpenTherm
 {
 public:
-  OpenTherm(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder = false);
+  // OpenTherm(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder = false);
+  OpenTherm() = default;
+  void setup(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder = false);
+  void begin(void);
   void begin(void(*handle_interrupt_callback)(OpenTherm *opentherm));
   void begin(void(*handle_interrupt_callback)(OpenTherm *opentherm), void(*process_response_callback)(uint32_t response, OpenThermResponseStatus response_status));
   OpenThermStatus get_status(void);
@@ -34,12 +37,14 @@ public:
   uint32_t send_request(uint32_t request);
   bool send_response(uint32_t request);
   bool send_request_async(uint32_t request);
-  uint32_t build_request(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
-  uint32_t build_response(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
-  uint32_t get_last_response();
-  OpenThermResponseStatus get_last_response_status();
-  const char *response_status_to_string(OpenThermResponseStatus response_status);
-  void handle_interrupt(OpenTherm *);
+  static uint32_t build_request(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
+  static uint32_t build_response(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
+  uint32_t get_response();
+  OpenThermResponseStatus get_response_status();
+  void reset_response_status();
+  static const char *response_status_to_string(OpenThermResponseStatus response_status);
+  static const char *status_to_string(OpenThermStatus status);
+  static void handle_interrupt(OpenTherm *);
   void process();
   void end();
 
@@ -48,8 +53,8 @@ public:
   static OpenThermMessageID get_data_id(uint32_t frame);
   static const char *message_type_to_string(OpenThermMessageType message_type);
   static const char *message_id_to_string(uint32_t frame);
-  bool is_valid_request(uint32_t request);
-  bool is_valid_response(uint32_t response);
+  static bool is_valid_request(uint32_t request);
+  static bool is_valid_response(uint32_t response);
 
   //requests
   uint32_t build_set_boiler_status_request(bool enable_central_heating, bool enable_hot_water = false, bool enable_cooling = false, bool enable_outside_temperature_compensation = false, bool enable_central_heating2 = false);
@@ -82,7 +87,7 @@ protected:
   InternalGPIOPin *read_pin_;
   InternalGPIOPin *write_pin_;
   ISRInternalGPIOPin isr_read_pin_;
-  const bool is_responder_;
+  bool is_responder_;
 
   volatile OpenThermStatus status_;
   volatile uint32_t response_;

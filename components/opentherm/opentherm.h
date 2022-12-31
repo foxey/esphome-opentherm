@@ -43,7 +43,6 @@ class OpenThermComponent : public PollingComponent {
   void update() override;
   void loop() override;
   void dump_config() override;
-  static void handle_interrupt(OpenThermComponent *component);
   void set_pins(InternalGPIOPin *responder_read_pin, InternalGPIOPin *responder_write_pin,
     InternalGPIOPin *controller_read_pin, InternalGPIOPin *controller_write_pin);
 
@@ -78,7 +77,7 @@ class OpenThermComponent : public PollingComponent {
   InternalGPIOPin *controller_write_pin_;
   ISRInternalGPIOPin isr_controller_read_pin_;
 
-  OpenTherm *controller_;
+  OpenTherm controller_;
 
   std::queue<uint32_t> buffer_;
   bool ch_min_max_read_ = false;
@@ -97,7 +96,6 @@ class OpenThermComponent : public PollingComponent {
   void set_boiler_status_();
 
   void enqueue_request_(uint32_t request);
-  bool send_request_async_(uint32_t request);
   void process_response_(uint32_t response, OpenThermResponseStatus response_status);
 
   OpenThermMessageType get_message_type_(uint32_t message);
@@ -110,15 +108,8 @@ class OpenThermComponent : public PollingComponent {
   void publish_sensor_state_(sensor::Sensor *sensor, float state);
   void publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state);
 
-  uint32_t build_request_(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
-  uint32_t build_response_(OpenThermMessageType type, OpenThermMessageID id, unsigned int data);
   void process_();
-  bool parity_(uint32_t frame);
-  void set_active_state_();
-  void set_idle_state_();
-  void send_bit_(bool high);
 
-  bool is_valid_response_(uint32_t response);
   bool is_fault_(uint32_t response) { return response & 0x1; }
   bool is_central_heating_active_(uint32_t response) { return response & 0x2; }
   bool is_hot_water_active_(uint32_t response) { return response & 0x4; }

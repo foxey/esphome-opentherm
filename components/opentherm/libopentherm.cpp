@@ -7,13 +7,13 @@ Copyright 2022, Michiel Fokke
 */
 
 #include "libopentherm.h"
+#include "consts.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace opentherm {
 
-OpenTherm::OpenTherm(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder):
-is_responder_(is_responder)
-{
+void OpenTherm::setup(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder) {
   this->read_pin_ = read_pin;
   this->write_pin_ = write_pin;
   this->status_ = OpenThermStatus::NOT_INITIALIZED;
@@ -22,6 +22,7 @@ is_responder_(is_responder)
   this->response_timestamp_ = 0;
   this->handle_interrupt_callback_ = nullptr;
   this->process_response_callback_ = nullptr;
+  this->is_responder_ = is_responder;
 }
 
 void OpenTherm::begin(void(*handle_interrupt_callback)(OpenTherm *), void(*process_response_callback)(uint32_t, OpenThermResponseStatus))
@@ -31,6 +32,8 @@ void OpenTherm::begin(void(*handle_interrupt_callback)(OpenTherm *), void(*proce
   if (handle_interrupt_callback != nullptr) {
     this->handle_interrupt_callback_ = handle_interrupt_callback;
     this->read_pin_->attach_interrupt(handle_interrupt_callback, this, gpio::INTERRUPT_ANY_EDGE);
+  } else {
+    this->read_pin_->attach_interrupt(OpenTherm::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);    
   }
   this->write_pin_->setup();
   this->activate_boiler_();
@@ -43,17 +46,25 @@ void OpenTherm::begin(void(*handle_interrupt_callback)(OpenTherm *))
   this->begin(handle_interrupt_callback, nullptr);
 }
 
-OpenThermStatus OpenTherm::get_status(void) {
+void OpenTherm::begin(void) {
+  this->read_pin_->setup();
+  this->isr_read_pin_ = this->read_pin_->to_isr();
+  this->read_pin_->attach_interrupt(OpenTherm::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);    
+  this->write_pin_->setup();
+  this->activate_boiler_();
+  this->status_ = OpenThermStatus::READY;
+}
+
+OpenThermStatus OpenTherm::get_status() {
   return this->status_;
 }
 
-bool IRAM_ATTR OpenTherm::is_ready()
-{
+bool IRAM_ATTR OpenTherm::is_ready() {
   return this->status_ == OpenThermStatus::READY;
 }
 
 int IRAM_ATTR OpenTherm::read_state_() {
-  return this->read_pin_->digital_read();
+  return this->isr_read_pin_.digital_read();
 }
 
 void OpenTherm::set_active_state_() {
@@ -130,14 +141,16 @@ bool OpenTherm::send_response(uint32_t request)
   return true;
 }
 
-uint32_t OpenTherm::get_last_response()
-{
+uint32_t OpenTherm::get_response() {
   return this->response_;
 }
 
-OpenThermResponseStatus OpenTherm::get_last_response_status()
-{
+OpenThermResponseStatus OpenTherm::get_response_status() {
   return this->response_status_;
+}
+
+void OpenTherm::reset_response_status() {
+  this->response_status_ = OpenThermResponseStatus::NONE;
 }
 
 void IRAM_ATTR OpenTherm::handle_interrupt(OpenTherm *opentherm)
@@ -145,45 +158,46 @@ void IRAM_ATTR OpenTherm::handle_interrupt(OpenTherm *opentherm)
   if (opentherm->is_ready())
   {
     if (opentherm->is_responder_ && opentherm->read_state_() == true) {
-       opentherm->status_ = OpenThermStatus::RESPONSE_WAITING;
+      opentherm->status_ = OpenThermStatus::RESPONSE_WAITING;
     }
     else {
       return;
     }
   }
 
-  uint32_t newTs = micros();
+  uint32_t new_timestamp = micros();
+
   if (opentherm->status_ == OpenThermStatus::RESPONSE_WAITING) {
     if (opentherm->read_state_() == true) {
       opentherm->status_ = OpenThermStatus::RESPONSE_START_BIT;
-      opentherm->response_timestamp_ = newTs;
+      opentherm->response_timestamp_ = new_timestamp;
     }
     else {
       opentherm->status_ = OpenThermStatus::RESPONSE_INVALID;
-      opentherm->response_timestamp_ = newTs;
+      opentherm->response_timestamp_ = new_timestamp;
     }
   }
   else if (opentherm->status_ == OpenThermStatus::RESPONSE_START_BIT) {
-    if ((newTs - opentherm->response_timestamp_ < 750) && opentherm->read_state_() == false) {
+    if ((new_timestamp - opentherm->response_timestamp_ < 750) && opentherm->read_state_() == false) {
       opentherm->status_ = OpenThermStatus::RESPONSE_RECEIVING;
-      opentherm->response_timestamp_ = newTs;
+      opentherm->response_timestamp_ = new_timestamp;
       opentherm->response_bit_index_ = 0;
     }
     else {
       opentherm->status_ = OpenThermStatus::RESPONSE_INVALID;
-      opentherm->response_timestamp_ = newTs;
+      opentherm->response_timestamp_ = new_timestamp;
     }
   }
   else if (opentherm->status_ == OpenThermStatus::RESPONSE_RECEIVING) {
-    if ((newTs - opentherm->response_timestamp_) > 750) {
+    if ((new_timestamp - opentherm->response_timestamp_) > 750) {
       if (opentherm->response_bit_index_ < 32) {
         opentherm->response_ = (opentherm->response_ << 1) | !opentherm->read_state_();
-        opentherm->response_timestamp_ = newTs;
+        opentherm->response_timestamp_ = new_timestamp;
         opentherm->response_bit_index_++;
       }
       else { //stop bit
         opentherm->status_ = OpenThermStatus::RESPONSE_READY;
-        opentherm->response_timestamp_ = newTs;
+        opentherm->response_timestamp_ = new_timestamp;
       }
     }
   }
@@ -326,6 +340,21 @@ const char *OpenTherm::message_type_to_string(OpenThermMessageType message_type)
       return "UNKNOWN_DATA_ID";
     default:
       return "UNDEFINED";
+  }
+}
+
+const char *OpenTherm::status_to_string(OpenThermStatus status) {
+  switch (status) {
+    case NOT_INITIALIZED: return "NOT_INITIALIZED";
+    case READY: return "READY";
+    case DELAY: return "DELAY";
+    case REQUEST_SENDING: return "REQUEST_SENDING";
+    case RESPONSE_WAITING: return "RESPONSE_WAITING";
+    case RESPONSE_START_BIT: return "RESPONSE_START_BIT";
+    case RESPONSE_RECEIVING: return "RESPONSE_RECEIVING";
+    case RESPONSE_READY: return "RESPONSE_READY";
+    case RESPONSE_INVALID: return "RESPONSE_INVALID";
+    default:    return "UNKNOWN";
   }
 }
 
