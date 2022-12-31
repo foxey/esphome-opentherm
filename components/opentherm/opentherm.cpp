@@ -78,11 +78,11 @@ void OpenThermComponent::loop() {
     this->last_millis_ = millis();
     this->enqueue_request_(
         OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::CH_SETPOINT,
-                             this->temperature_to_data_(this->ch_setpoint_temperature_number_->state)));
+                             OpenTherm::temperature_to_data(this->ch_setpoint_temperature_number_->state)));
     if (this->confirmed_dhw_setpoint_ != this->dhw_setpoint_temperature_number_->state) {
       this->enqueue_request_(
           OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT,
-                               this->temperature_to_data_(this->dhw_setpoint_temperature_number_->state)));
+                               OpenTherm::temperature_to_data(this->dhw_setpoint_temperature_number_->state)));
     }
   }
 
@@ -150,11 +150,11 @@ void OpenThermComponent::dump_config() {
 void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, uint32_t message) {
   switch (level) {
     case 0:
-      ESP_LOGD(TAG, "%s: %s(%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+      ESP_LOGD(TAG, "%s: %s (%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
                OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
       break;
     default:
-      ESP_LOGW(TAG, "%s: %s(%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+      ESP_LOGW(TAG, "%s: %s (%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
                OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
   }
 }
@@ -164,24 +164,24 @@ void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseS
     this->log_message_(0, "Received response", response);
     switch (OpenTherm::get_data_id(response)) {
       case OpenThermMessageID::STATUS:
-        this->publish_binary_sensor_state_(this->ch_active_binary_sensor_, this->is_central_heating_active_(response));
-        this->publish_binary_sensor_state_(this->dhw_active_binary_sensor_, this->is_hot_water_active_(response));
-        this->publish_binary_sensor_state_(this->cooling_active_binary_sensor_, this->is_cooling_active_(response));
-        this->publish_binary_sensor_state_(this->flame_active_binary_sensor_, this->is_flame_on_(response));
-        this->publish_binary_sensor_state_(this->fault_binary_sensor_, this->is_fault_(response));
-        this->publish_binary_sensor_state_(this->diagnostic_binary_sensor_, this->is_diagnostic_(response));
+        this->publish_binary_sensor_state_(this->ch_active_binary_sensor_, OpenTherm::is_central_heating_active(response));
+        this->publish_binary_sensor_state_(this->dhw_active_binary_sensor_, OpenTherm::is_hot_water_active(response));
+        this->publish_binary_sensor_state_(this->cooling_active_binary_sensor_, OpenTherm::is_cooling_active(response));
+        this->publish_binary_sensor_state_(this->flame_active_binary_sensor_, OpenTherm::is_flame_on(response));
+        this->publish_binary_sensor_state_(this->fault_binary_sensor_, OpenTherm::is_fault(response));
+        this->publish_binary_sensor_state_(this->diagnostic_binary_sensor_, OpenTherm::is_diagnostic(response));
         break;
       case OpenThermMessageID::RETURN_WATER_TEMP:
-        this->publish_sensor_state_(this->return_temperature_sensor_, this->get_float_(response));
+        this->publish_sensor_state_(this->return_temperature_sensor_, OpenTherm::get_float(response));
         break;
       case OpenThermMessageID::BOILER_WATER_TEMP:
-        this->publish_sensor_state_(this->boiler_temperature_sensor_, this->get_float_(response));
+        this->publish_sensor_state_(this->boiler_temperature_sensor_, OpenTherm::get_float(response));
         break;
       case OpenThermMessageID::CH_PRESSURE:
-        this->publish_sensor_state_(this->pressure_sensor_, this->get_float_(response));
+        this->publish_sensor_state_(this->pressure_sensor_, OpenTherm::get_float(response));
         break;
       case OpenThermMessageID::REL_MOD_LEVEL:
-        this->publish_sensor_state_(this->modulation_sensor_, this->get_float_(response));
+        this->publish_sensor_state_(this->modulation_sensor_, OpenTherm::get_float(response));
         break;
       case OpenThermMessageID::DHW_TEMP_MAX_MIN:
         this->dhw_min_max_read_ = true;
@@ -195,7 +195,7 @@ void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseS
         break;
       case OpenThermMessageID::DHW_SETPOINT:
         if (OpenTherm::get_message_type(response) == OpenThermMessageType::WRITE_ACK) {
-          this->confirmed_dhw_setpoint_ = this->get_float_(response);
+          this->confirmed_dhw_setpoint_ = OpenTherm::get_float(response);
         }
         break;
       default:
@@ -224,8 +224,9 @@ void OpenThermComponent::publish_binary_sensor_state_(binary_sensor::BinarySenso
 
 void OpenThermComponent::set_boiler_status_() {
   // Fields: CH enabled | DHW enabled | cooling | outside temperature compensation | central heating 2
-  unsigned int data = this->wanted_ch_enabled_ | (this->wanted_dhw_enabled_ << 1) |
-                      (this->wanted_cooling_enabled_ << 2) | (false << 3) | (false << 4);
+  unsigned int data = OpenTherm::build_set_boiler_status_request(this->wanted_ch_enabled_,
+                                                                  this->wanted_dhw_enabled_,
+                                                                  this->wanted_cooling_enabled_);
   data <<= 8;
   this->enqueue_request_(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::STATUS, data));
 }

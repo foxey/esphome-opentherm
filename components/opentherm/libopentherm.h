@@ -56,23 +56,31 @@ public:
   static bool is_valid_response(uint32_t response);
 
   //requests
-  uint32_t build_set_boiler_status_request(bool enable_central_heating, bool enable_hot_water = false, bool enable_cooling = false, bool enable_outside_temperature_compensation = false, bool enable_central_heating2 = false);
-  uint32_t build_set_boiler_temperature_request(float temperature);
-  uint32_t build_get_boiler_temperature_request();
+  static uint32_t build_set_boiler_status_request(bool enable_central_heating,
+                                            bool enable_hot_water = false,
+                                            bool enable_cooling = false,
+                                            bool enable_outside_temperature_compensation = false,
+                                            bool enable_central_heating2 = false);
+  static uint32_t build_set_boiler_temperature_request(float temperature);
+  static uint32_t build_get_boiler_temperature_request();
 
   //responses
-  bool is_fault(uint32_t response);
-  bool is_central_heating_active(uint32_t response);
-  bool is_hot_water_active(uint32_t response);
-  bool is_flame_on(uint32_t response);
-  bool is_cooling_active(uint32_t response);
-  bool is_diagnostic(uint32_t response);
+  static bool is_fault(uint32_t response);
+  static bool is_central_heating_active(uint32_t response);
+  static bool is_hot_water_active(uint32_t response);
+  static bool is_flame_on(uint32_t response);
+  static bool is_cooling_active(uint32_t response);
+  static bool is_diagnostic(uint32_t response);
   static uint16_t get_uint16(const uint32_t response);
   static float get_float(const uint32_t response);  
-  unsigned int temperature_to_data(float temperature);
+  static unsigned int temperature_to_data(float temperature);
 
   //basic requests
-  uint32_t set_boiler_status(bool enable_central_heating, bool enable_hot_water = false, bool enable_cooling = false, bool enable_outside_temperature_compensation = false, bool enable_central_heating2 = false);
+  uint32_t set_boiler_status(bool enable_central_heating,
+                              bool enable_hot_water = false,
+                              bool enable_cooling = false,
+                              bool enable_outside_temperature_compensation = false,
+                              bool enable_central_heating2 = false);
   bool set_boiler_temperature(float temperature);
   float get_boiler_temperature();
   float get_return_temperature();

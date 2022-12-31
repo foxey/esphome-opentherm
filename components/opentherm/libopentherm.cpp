@@ -479,48 +479,57 @@ unsigned int OpenTherm::temperature_to_data(float temperature) {
 
 //basic requests
 
-uint32_t OpenTherm::set_boiler_status(bool enable_central_heating, bool enable_hot_water, bool enable_cooling, bool enable_outside_temperature_compensation, bool enable_central_heating2) {
-  return send_request(build_set_boiler_status_request(enable_central_heating, enable_hot_water, enable_cooling, enable_outside_temperature_compensation, enable_central_heating2));
+uint32_t OpenTherm::set_boiler_status(bool enable_central_heating,
+                                        bool enable_hot_water,
+                                        bool enable_cooling,
+                                        bool enable_outside_temperature_compensation,
+                                        bool enable_central_heating2) {
+  return send_request(
+    OpenTherm::build_set_boiler_status_request(enable_central_heating,
+                                    enable_hot_water,
+                                    enable_cooling,
+                                    enable_outside_temperature_compensation,
+                                    enable_central_heating2));
 }
 
 bool OpenTherm::set_boiler_temperature(float temperature) {
-  uint32_t response = send_request(build_set_boiler_temperature_request(temperature));
-  return is_valid_response(response);
+  uint32_t response = this->send_request(OpenTherm::build_set_boiler_temperature_request(temperature));
+  return OpenTherm::is_valid_response(response);
 }
 
 float OpenTherm::get_boiler_temperature() {
-  uint32_t response = send_request(build_get_boiler_temperature_request());
-  return is_valid_response(response) ? get_float(response) : 0;
+  uint32_t response = this->send_request(OpenTherm::build_get_boiler_temperature_request());
+  return OpenTherm::is_valid_response(response) ? OpenTherm::get_float(response) : 0;
 }
 
 float OpenTherm::get_return_temperature() {
-    uint32_t response = send_request(build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::RETURN_WATER_TEMP, 0));
-    return is_valid_response(response) ? get_float(response) : 0;
+    uint32_t response = this->send_request(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::RETURN_WATER_TEMP, 0));
+    return OpenTherm::is_valid_response(response) ? OpenTherm::get_float(response) : 0;
 }
 
 bool OpenTherm::set_dhw_setpoint(float temperature) {
-    unsigned int data = temperature_to_data(temperature);
-    uint32_t response = send_request(build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT, data));
-    return is_valid_response(response);
+    unsigned int data = OpenTherm::temperature_to_data(temperature);
+    uint32_t response = this->send_request(OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT, data));
+    return OpenTherm::is_valid_response(response);
 }
     
 float OpenTherm::get_dhw_temperature() {
-    uint32_t response = send_request(build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::DHW_TEMP, 0));
-    return is_valid_response(response) ? get_float(response) : 0;
+    uint32_t response = this->send_request(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::DHW_TEMP, 0));
+    return OpenTherm::is_valid_response(response) ? OpenTherm::get_float(response) : 0;
 }
 
 float OpenTherm::get_modulation() {
-    uint32_t response = send_request(build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::REL_MOD_LEVEL, 0));
-    return is_valid_response(response) ? get_float(response) : 0;
+    uint32_t response = this->send_request(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::REL_MOD_LEVEL, 0));
+    return OpenTherm::is_valid_response(response) ? OpenTherm::get_float(response) : 0;
 }
 
 float OpenTherm::get_pressure() {
-    uint32_t response = send_request(build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_PRESSURE, 0));
+    uint32_t response = this->send_request(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::CH_PRESSURE, 0));
     return is_valid_response(response) ? get_float(response) : 0;
 }
 
 unsigned char OpenTherm::get_fault() {
-    return ((send_request(build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::APP_SPEC_FAULT_FLAGS, 0)) >> 8) & 0xff);
+    return ((send_request(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::APP_SPEC_FAULT_FLAGS, 0)) >> 8) & 0xff);
 }
 
 }  // namespace opentherm

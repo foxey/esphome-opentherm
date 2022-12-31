@@ -87,11 +87,6 @@ class OpenThermComponent : public PollingComponent {
   bool wanted_ch_enabled_ = false;
   bool wanted_dhw_enabled_ = false;
   bool wanted_cooling_enabled_ = false;
-  volatile uint32_t response_ = 0;
-  volatile OpenThermResponseStatus response_status_ = OpenThermResponseStatus::NONE;
-  volatile OpenThermStatus status_ = OpenThermStatus::NOT_INITIALIZED;
-  volatile uint32_t response_timestamp_ = 0;
-  volatile uint8_t response_bit_index_ = 0;
 
   void set_boiler_status_();
 
@@ -103,29 +98,6 @@ class OpenThermComponent : public PollingComponent {
   void publish_sensor_state_(sensor::Sensor *sensor, float state);
   void publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state);
 
-  bool is_fault_(uint32_t response) { return response & 0x1; }
-  bool is_central_heating_active_(uint32_t response) { return response & 0x2; }
-  bool is_hot_water_active_(uint32_t response) { return response & 0x4; }
-  bool is_flame_on_(uint32_t response) { return response & 0x8; }
-  bool is_cooling_active_(uint32_t response) { return response & 0x10; }
-  bool is_diagnostic_(uint32_t response) { return response & 0x40; }
-  uint16_t get_uint16_(const uint32_t response) const {
-    const uint16_t u88 = response & 0xffff;
-    return u88;
-  }
-  float get_float_(const uint32_t response) const {
-    const uint16_t u88 = get_uint16_(response);
-    const float f = (u88 & 0x8000) ? -(0x10000L - u88) / 256.0f : u88 / 256.0f;
-    return f;
-  }
-  unsigned int temperature_to_data_(float temperature) {
-    if (temperature < 0)
-      temperature = 0;
-    if (temperature > 100)
-      temperature = 100;
-    unsigned int data = (unsigned int) (temperature * 256);
-    return data;
-  }
 };
 
 }  // namespace opentherm
