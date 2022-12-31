@@ -98,17 +98,10 @@ class OpenThermComponent : public PollingComponent {
   void enqueue_request_(uint32_t request);
   void process_response_(uint32_t response, OpenThermResponseStatus response_status);
 
-  OpenThermMessageType get_message_type_(uint32_t message);
-  OpenThermMessageID get_data_id_(uint32_t frame);
-
   void log_message_(uint8_t level, const char *pre_message, uint32_t message);
-  const char *format_message_type_(uint32_t message);
-  const char *message_type_to_string_(OpenThermMessageType message_type);
-
+  
   void publish_sensor_state_(sensor::Sensor *sensor, float state);
   void publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state);
-
-  void process_();
 
   bool is_fault_(uint32_t response) { return response & 0x1; }
   bool is_central_heating_active_(uint32_t response) { return response & 0x2; }

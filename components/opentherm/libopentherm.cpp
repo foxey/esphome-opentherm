@@ -13,46 +13,31 @@ Copyright 2022, Michiel Fokke
 namespace esphome {
 namespace opentherm {
 
+OpenTherm::OpenTherm():
+is_responder_(false),
+status_(OpenThermStatus::NOT_INITIALIZED),
+response_(0),
+response_status_(OpenThermResponseStatus::NONE),
+response_timestamp_(0)
+{
+}
+
 void OpenTherm::setup(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder) {
   this->read_pin_ = read_pin;
   this->write_pin_ = write_pin;
-  this->status_ = OpenThermStatus::NOT_INITIALIZED;
-  this->response_ = 0;
-  this->response_status_ = OpenThermResponseStatus::NONE;
-  this->response_timestamp_ = 0;
   this->handle_interrupt_callback_ = nullptr;
   this->process_response_callback_ = nullptr;
   this->is_responder_ = is_responder;
-}
-
-void OpenTherm::begin(void(*handle_interrupt_callback)(OpenTherm *), void(*process_response_callback)(uint32_t, OpenThermResponseStatus))
-{
-  this->read_pin_->setup();
-  this->isr_read_pin_ = this->read_pin_->to_isr();
-  if (handle_interrupt_callback != nullptr) {
-    this->handle_interrupt_callback_ = handle_interrupt_callback;
-    this->read_pin_->attach_interrupt(handle_interrupt_callback, this, gpio::INTERRUPT_ANY_EDGE);
-  } else {
-    this->read_pin_->attach_interrupt(OpenTherm::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);    
-  }
-  this->write_pin_->setup();
-  this->activate_boiler_();
-  this->status_ = OpenThermStatus::READY;
-  this->process_response_callback_ = process_response_callback;
-}
-
-void OpenTherm::begin(void(*handle_interrupt_callback)(OpenTherm *))
-{
-  this->begin(handle_interrupt_callback, nullptr);
-}
-
-void OpenTherm::begin(void) {
   this->read_pin_->setup();
   this->isr_read_pin_ = this->read_pin_->to_isr();
   this->read_pin_->attach_interrupt(OpenTherm::handle_interrupt, this, gpio::INTERRUPT_ANY_EDGE);    
   this->write_pin_->setup();
   this->activate_boiler_();
   this->status_ = OpenThermStatus::READY;
+}
+
+void OpenTherm::setup(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin) {
+  this->setup(read_pin, write_pin, false);
 }
 
 OpenThermStatus OpenTherm::get_status() {
@@ -149,7 +134,11 @@ OpenThermResponseStatus OpenTherm::get_response_status() {
   return this->response_status_;
 }
 
-void OpenTherm::reset_response_status() {
+bool OpenTherm::has_response_available() {
+  return this->response_status_ != OpenThermResponseStatus::NONE;
+}
+
+void OpenTherm::mark_response_read() {
   this->response_status_ = OpenThermResponseStatus::NONE;
 }
 
@@ -263,6 +252,34 @@ OpenThermMessageType OpenTherm::get_message_type(uint32_t message)
   return msg_type;
 }
 
+const char *OpenTherm::message_type_to_string(OpenThermMessageType message_type)
+{
+  switch (message_type) {
+    case READ_DATA:
+		  return "READ_DATA";
+    case WRITE_DATA:
+      return "WRITE_DATA";
+    case INVALID_DATA:
+      return "INVALID_DATA";
+    case RESERVED:
+      return "RESERVED";
+    case READ_ACK:
+      return "READ_ACK";
+    case WRITE_ACK:
+      return "WRITE_ACK";
+    case DATA_INVALID:
+      return "DATA_INVALID";
+    case UNKNOWN_DATA_ID:
+      return "UNKNOWN_DATA_ID";
+    default:
+      return "UNDEFINED";
+  }
+}
+
+const char *OpenTherm::get_message_type_string(uint32_t message) {
+  return OpenTherm::message_type_to_string(OpenTherm::get_message_type(message));
+}
+
 OpenThermMessageID OpenTherm::get_data_id(uint32_t frame)
 {
   return (OpenThermMessageID)((frame >> 16) & 0xFF);
@@ -316,30 +333,6 @@ const char *OpenTherm::response_status_to_string(OpenThermResponseStatus respons
     case INVALID: return "INVALID";
     case TIMEOUT: return "TIMEOUT";
     default:    return "UNKNOWN";
-  }
-}
-
-const char *OpenTherm::message_type_to_string(OpenThermMessageType message_type)
-{
-  switch (message_type) {
-    case READ_DATA:
-		  return "READ_DATA";
-    case WRITE_DATA:
-      return "WRITE_DATA";
-    case INVALID_DATA:
-      return "INVALID_DATA";
-    case RESERVED:
-      return "RESERVED";
-    case READ_ACK:
-      return "READ_ACK";
-    case WRITE_ACK:
-      return "WRITE_ACK";
-    case DATA_INVALID:
-      return "DATA_INVALID";
-    case UNKNOWN_DATA_ID:
-      return "UNKNOWN_DATA_ID";
-    default:
-      return "UNDEFINED";
   }
 }
 
@@ -466,13 +459,13 @@ bool OpenTherm::is_diagnostic(uint32_t response) {
   return response & 0x40;
 }
 
-uint16_t OpenTherm::get_uint(const uint32_t response) const {
+uint16_t OpenTherm::get_uint16(const uint32_t response) {
   const uint16_t u88 = response & 0xffff;
   return u88;
 }
 
-float OpenTherm::get_float(const uint32_t response) const {
-  const uint16_t u88 = get_uint(response);
+float OpenTherm::get_float(const uint32_t response) {
+  const uint16_t u88 = get_uint16(response);
   const float f = (u88 & 0x8000) ? -(0x10000L - u88) / 256.0f : u88 / 256.0f;
   return f;
 }

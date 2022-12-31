@@ -24,7 +24,6 @@ void OpenThermComponent::set_pins(InternalGPIOPin *responder_read_pin, InternalG
 
 void OpenThermComponent::setup() {
   this->controller_.setup(this->controller_read_pin_, this->controller_write_pin_);
-  this->controller_.begin();
 
   if (this->ch_enabled_switch_) {
     this->ch_enabled_switch_->add_on_state_callback([this](bool enabled) {
@@ -86,7 +85,14 @@ void OpenThermComponent::loop() {
                                this->temperature_to_data_(this->dhw_setpoint_temperature_number_->state)));
     }
   }
-  this->process_();
+
+  this->controller_.process();
+  OpenThermResponseStatus response_status = this->controller_.get_response_status();
+  uint32_t response = this->controller_.get_response();  
+  if (this->controller_.has_response_available()) {
+    this->process_response_(response, response_status);
+    this->controller_.mark_response_read();
+  }
   yield();
 }
 
@@ -144,107 +150,19 @@ void OpenThermComponent::dump_config() {
 void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, uint32_t message) {
   switch (level) {
     case 0:
-      ESP_LOGD(TAG, "%s: %s(%s, 0x%04hX)", pre_message, this->format_message_type_(message),
-               OpenTherm::message_id_to_string(message), this->get_uint16_(message));
+      ESP_LOGD(TAG, "%s: %s(%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+               OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
       break;
     default:
-      ESP_LOGW(TAG, "%s: %s(%s, 0x%04hX)", pre_message, this->format_message_type_(message),
-               OpenTherm::message_id_to_string(message), this->get_uint16_(message));
-  }
-}
-
-void OpenThermComponent::process_() {
-  this->controller_.process();
-  // OpenThermStatus status = this->controller_.get_status();
-  OpenThermResponseStatus response_status = this->controller_.get_response_status();
-  uint32_t response = this->controller_.get_response();
-
-  // ESP_LOGD(TAG, "status: %s, response_status: %s", OpenTherm::status_to_string(status),
-  //   OpenTherm::response_status_to_string(response_status));
-
-  // if (status == OpenThermStatus::READY && response_status == OpenThermResponseStatus::TIMEOUT) {
-  //   this->process_response_(response, response_status);
-  // } else if (status == OpenThermStatus::DELAY && response_status != OpenThermResponseStatus::NONE) {
-  //   this->process_response_(response, response_status);  
-  // }
-  
-  if (response_status != OpenThermResponseStatus::NONE) {
-    this->process_response_(response, response_status);
-    this->controller_.reset_response_status();
-  }
-
-}
-
-// void OpenThermComponent::process_() {
-//   OpenThermStatus st = OpenThermStatus::NOT_INITIALIZED;
-//   uint32_t ts = 0;
-//   {
-//     InterruptLock lock;
-//     st = this->status_;
-//     ts = this->response_timestamp_;
-//   }
-
-//   if (st == OpenThermStatus::READY) {
-//     return;
-//   }
-
-//   uint32_t new_timestamp = micros();
-//   if (st != OpenThermStatus::NOT_INITIALIZED && st != OpenThermStatus::DELAY && (new_timestamp - ts) > 1000000) {
-//     this->status_ = OpenThermStatus::READY;
-//     this->response_status_ = OpenThermResponseStatus::TIMEOUT;
-//     this->process_response_(this->response_, this->response_status_);
-//   } else if (st == OpenThermStatus::RESPONSE_INVALID) {
-//     this->status_ = OpenThermStatus::DELAY;
-//     this->response_status_ = OpenThermResponseStatus::INVALID;
-//     this->process_response_(this->response_, this->response_status_);
-//   } else if (st == OpenThermStatus::RESPONSE_READY) {
-//     this->status_ = OpenThermStatus::DELAY;
-//     this->response_status_ =
-//         OpenTherm::is_valid_response(this->response_) ? OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
-//     this->process_response_(this->response_, this->response_status_);
-//   } else if (st == OpenThermStatus::DELAY) {
-//     if ((new_timestamp - ts) > 100000) {
-//       this->status_ = OpenThermStatus::READY;
-//     }
-//   }
-// }
-
-OpenThermMessageType OpenThermComponent::get_message_type_(uint32_t message) {
-  OpenThermMessageType messsage_type = static_cast<OpenThermMessageType>((message >> 28) & 7);
-  return messsage_type;
-}
-
-OpenThermMessageID OpenThermComponent::get_data_id_(uint32_t frame) {
-  return (OpenThermMessageID)((frame >> 16) & 0xFF);
-}
-
-const char *OpenThermComponent::message_type_to_string_(OpenThermMessageType message_type) {
-  switch (message_type) {
-    case READ_DATA:
-      return "READ_DATA";
-    case WRITE_DATA:
-      return "WRITE_DATA";
-    case INVALID_DATA:
-      return "INVALID_DATA";
-    case RESERVED:
-      return "RESERVED";
-    case READ_ACK:
-      return "READ_ACK";
-    case WRITE_ACK:
-      return "WRITE_ACK";
-    case DATA_INVALID:
-      return "DATA_INVALID";
-    case UNKNOWN_DATA_ID:
-      return "UNKNOWN_DATA_ID";
-    default:
-      return "UNKNOWN";
+      ESP_LOGW(TAG, "%s: %s(%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+               OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
   }
 }
 
 void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseStatus response_status) {
   if (response_status == OpenThermResponseStatus::SUCCESS) {
     this->log_message_(0, "Received response", response);
-    switch (this->get_data_id_(response)) {
+    switch (OpenTherm::get_data_id(response)) {
       case OpenThermMessageID::STATUS:
         this->publish_binary_sensor_state_(this->ch_active_binary_sensor_, this->is_central_heating_active_(response));
         this->publish_binary_sensor_state_(this->dhw_active_binary_sensor_, this->is_hot_water_active_(response));
@@ -276,7 +194,7 @@ void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseS
         this->publish_sensor_state_(this->ch_min_temperature_sensor_, response & 0xFF);
         break;
       case OpenThermMessageID::DHW_SETPOINT:
-        if (this->get_message_type_(response) == OpenThermMessageType::WRITE_ACK) {
+        if (OpenTherm::get_message_type(response) == OpenThermMessageType::WRITE_ACK) {
           this->confirmed_dhw_setpoint_ = this->get_float_(response);
         }
         break;
@@ -319,10 +237,6 @@ void OpenThermComponent::enqueue_request_(uint32_t request) {
     this->buffer_.push(request);
     this->log_message_(0, "Enqueued request", request);
   }
-}
-
-const char *OpenThermComponent::format_message_type_(uint32_t message) {
-  return this->message_type_to_string_(this->get_message_type_(message));
 }
 
 }  // namespace opentherm
