@@ -4,7 +4,7 @@
  *   OpenTherm Library at https://github.com/ihormelnyk/opentherm_library, which is MIT licensed.
  */
 
-#include "opentherm.h"
+#include "opentherm_component.h"
 #include "libopentherm.h"
 #include "esphome/core/log.h"
 #include <vector>
