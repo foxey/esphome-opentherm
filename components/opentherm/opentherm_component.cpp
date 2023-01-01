@@ -26,6 +26,14 @@ void OpenThermComponent::setup() {
   this->responder_.setup(this->responder_read_pin_, this->responder_write_pin_, true);
   this->controller_.setup(this->controller_read_pin_, this->controller_write_pin_);
 
+  if (this->gateway_enabled_switch_) {
+    this->gateway_enabled_switch_->add_on_state_callback([this](bool enabled) {
+      if (this->gateway_enabled_ != enabled) {
+        ESP_LOGI(TAG, "%s GATEWAY", (enabled ? "Enabled" : "Disabled"));
+        this->gateway_enabled_ = enabled;
+      }
+    });
+  }
   if (this->ch_enabled_switch_) {
     this->ch_enabled_switch_->add_on_state_callback([this](bool enabled) {
       if (this->wanted_ch_enabled_ != enabled) {
@@ -145,6 +153,8 @@ void OpenThermComponent::update() {
 
 void OpenThermComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "OpenTherm:");
+  LOG_PIN("  Responder Write Pin: ", this->responder_write_pin_);
+  LOG_PIN("  Responder Read Pin: ", this->responder_read_pin_);
   LOG_PIN("  Controller Write Pin: ", this->controller_write_pin_);
   LOG_PIN("  Controller Read Pin: ", this->controller_read_pin_);
   LOG_SENSOR("  ", "CH min temperature:", this->ch_min_temperature_sensor_);
@@ -155,12 +165,14 @@ void OpenThermComponent::dump_config() {
   LOG_SENSOR("  ", "Modulation:", this->modulation_sensor_);
   LOG_SENSOR("  ", "Boiler temperature:", this->boiler_temperature_sensor_);
   LOG_SENSOR("  ", "Return temperature:", this->return_temperature_sensor_);
+  LOG_SENSOR("  ", "Room temperature:", this->room_temperature_sensor_);
   LOG_BINARY_SENSOR("  ", "CH active:", this->ch_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "DHW active:", this->dhw_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Cooling active:", this->cooling_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Flame active:", this->flame_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Fault:", fault_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Diagnostic:", this->diagnostic_binary_sensor_);
+  LOG_SWITCH("  ", "GATEWAY enabled:", this->gateway_enabled_switch_);
   LOG_SWITCH("  ", "CH enabled:", this->ch_enabled_switch_);
   LOG_SWITCH("  ", "DHW enabled:", this->dhw_enabled_switch_);
   LOG_SWITCH("  ", "Cooling enabled:", this->cooling_enabled_switch_);

@@ -75,6 +75,8 @@ binary_sensor:
 
 switch:
   - platform: opentherm
+    gateway_enabled:
+      name: "Gateway Enabled"
     ch_enabled:
       name: "Central Heating Enabled"
     dhw_enabled:

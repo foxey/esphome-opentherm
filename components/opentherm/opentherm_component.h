@@ -32,6 +32,7 @@ class OpenThermComponent : public PollingComponent {
   binary_sensor::BinarySensor *flame_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *fault_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *diagnostic_binary_sensor_{nullptr};
+  opentherm::CustomSwitch *gateway_enabled_switch_{nullptr};
   opentherm::CustomSwitch *ch_enabled_switch_{nullptr};
   opentherm::CustomSwitch *dhw_enabled_switch_{nullptr};
   opentherm::CustomSwitch *cooling_enabled_switch_{nullptr};
@@ -63,6 +64,7 @@ class OpenThermComponent : public PollingComponent {
   void set_flame_active_binary_sensor(binary_sensor::BinarySensor *sensor) { flame_active_binary_sensor_ = sensor; }
   void set_fault_binary_sensor(binary_sensor::BinarySensor *sensor) { fault_binary_sensor_ = sensor; }
   void set_diagnostic_binary_sensor(binary_sensor::BinarySensor *sensor) { diagnostic_binary_sensor_ = sensor; }
+  void set_gateway_enabled_switch(opentherm::CustomSwitch *custom_switch) { gateway_enabled_switch_ = custom_switch; }
   void set_ch_enabled_switch(opentherm::CustomSwitch *custom_switch) { ch_enabled_switch_ = custom_switch; }
   void set_dhw_enabled_switch(opentherm::CustomSwitch *custom_switch) { dhw_enabled_switch_ = custom_switch; }
   void set_cooling_enabled_switch(opentherm::CustomSwitch *custom_switch) { cooling_enabled_switch_ = custom_switch; }
@@ -87,6 +89,7 @@ class OpenThermComponent : public PollingComponent {
   float confirmed_dhw_setpoint_ = 0;
   float confirmed_room_setpoint_ = 0;
   uint32_t last_millis_ = 0;
+  bool gateway_enabled_ = false;
   bool wanted_ch_enabled_ = false;
   bool wanted_dhw_enabled_ = false;
   bool wanted_cooling_enabled_ = false;
