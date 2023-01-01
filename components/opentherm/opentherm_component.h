@@ -71,11 +71,11 @@ class OpenThermComponent : public PollingComponent {
  protected:
   InternalGPIOPin *responder_read_pin_;
   InternalGPIOPin *responder_write_pin_;
-  ISRInternalGPIOPin isr_responder_read_pin_;
+
+  OpenTherm responder_;
 
   InternalGPIOPin *controller_read_pin_;
   InternalGPIOPin *controller_write_pin_;
-  ISRInternalGPIOPin isr_controller_read_pin_;
 
   OpenTherm controller_;
 
@@ -91,7 +91,8 @@ class OpenThermComponent : public PollingComponent {
   void set_boiler_status_();
 
   void enqueue_request_(uint32_t request);
-  void process_response_(uint32_t response, OpenThermResponseStatus response_status);
+  void process_responder_response_(uint32_t response, OpenThermResponseStatus response_status);
+  void process_controller_response_(uint32_t response, OpenThermResponseStatus response_status);
 
   void log_message_(uint8_t level, const char *pre_message, uint32_t message);
   

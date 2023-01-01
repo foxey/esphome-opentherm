@@ -23,6 +23,7 @@ void OpenThermComponent::set_pins(InternalGPIOPin *responder_read_pin, InternalG
 }
 
 void OpenThermComponent::setup() {
+  this->responder_.setup(this->responder_read_pin_, this->responder_write_pin_, true);
   this->controller_.setup(this->controller_read_pin_, this->controller_write_pin_);
 
   if (this->ch_enabled_switch_) {
@@ -86,14 +87,26 @@ void OpenThermComponent::loop() {
     }
   }
 
+
   this->controller_.process();
-  OpenThermResponseStatus response_status = this->controller_.get_response_status();
-  uint32_t response = this->controller_.get_response();  
   if (this->controller_.has_response_available()) {
-    this->process_response_(response, response_status);
+    OpenThermResponseStatus response_status = this->controller_.get_response_status();
+    uint32_t response = this->controller_.get_response();  
+    this->process_controller_response_(response, response_status);
     this->controller_.mark_response_read();
   }
   yield();
+
+
+  this->responder_.process();
+  if (this->responder_.has_response_available()) {
+    OpenThermResponseStatus response_status = this->responder_.get_response_status();
+    uint32_t response = this->responder_.get_response();  
+    this->process_responder_response_(response, response_status);
+    this->responder_.mark_response_read();
+  }
+  yield();
+
 }
 
 void OpenThermComponent::update() {
@@ -159,9 +172,27 @@ void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, ui
   }
 }
 
-void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseStatus response_status) {
+void OpenThermComponent::process_responder_response_(uint32_t response, OpenThermResponseStatus response_status) {
+  if (response_status == OpenThermResponseStatus::NONE) {
+    ESP_LOGW(TAG, "Responder: OpenTherm is not initialized");
+  } else if (response_status == OpenThermResponseStatus::TIMEOUT) {
+    this->log_message_(2, "Responder: Request timeout", response);
+  } else if (response_status == OpenThermResponseStatus::INVALID) {
+    this->log_message_(2, "Responder: Received invalid response", response);
+  } else {
+    this->log_message_(0, "Responder: Received response", response);
+    if (OpenTherm::is_valid_request(response)) {
+      uint32_t controller_response = this->controller_.send_request(response);
+      if (!this->responder_.send_response(controller_response)) {
+        this->log_message_(2, "Responder: Error sending response", controller_response);
+      }
+    }
+  }
+}
+
+void OpenThermComponent::process_controller_response_(uint32_t response, OpenThermResponseStatus response_status) {
   if (response_status == OpenThermResponseStatus::SUCCESS) {
-    this->log_message_(0, "Received response", response);
+    this->log_message_(0, "Controller: Received response", response);
     switch (OpenTherm::get_data_id(response)) {
       case OpenThermMessageID::STATUS:
         this->publish_binary_sensor_state_(this->ch_active_binary_sensor_, OpenTherm::is_central_heating_active(response));
@@ -202,11 +233,11 @@ void OpenThermComponent::process_response_(uint32_t response, OpenThermResponseS
         break;
     }
   } else if (response_status == OpenThermResponseStatus::NONE) {
-    ESP_LOGW(TAG, "OpenTherm is not initialized");
+    ESP_LOGW(TAG, "Controller: OpenTherm is not initialized");
   } else if (response_status == OpenThermResponseStatus::TIMEOUT) {
-    ESP_LOGW(TAG, "Request timeout");
+    ESP_LOGW(TAG, "Controller: Request timeout");
   } else if (response_status == OpenThermResponseStatus::INVALID) {
-    this->log_message_(2, "Received invalid response", response);
+    this->log_message_(2, "Controller: Received invalid response", response);
   }
 }
 
