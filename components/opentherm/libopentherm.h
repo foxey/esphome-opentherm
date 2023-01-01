@@ -108,8 +108,6 @@ protected:
   void activate_boiler_();
 
   void send_bit_(bool high);
-  void(*handle_interrupt_callback_)(OpenTherm *);
-  void(*process_response_callback_)(uint32_t, OpenThermResponseStatus);
 };
 
 }  // namespace opentherm

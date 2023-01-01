@@ -25,8 +25,6 @@ response_timestamp_(0)
 void OpenTherm::setup(InternalGPIOPin *read_pin, InternalGPIOPin *write_pin, bool is_responder) {
   this->read_pin_ = read_pin;
   this->write_pin_ = write_pin;
-  this->handle_interrupt_callback_ = nullptr;
-  this->process_response_callback_ = nullptr;
   this->is_responder_ = is_responder;
   this->read_pin_->setup();
   this->isr_read_pin_ = this->read_pin_->to_isr();
@@ -210,23 +208,15 @@ void OpenTherm::process()
   if (status != OpenThermStatus::NOT_INITIALIZED && status != OpenThermStatus::DELAY && (new_timestamp - timestamp) > 1000000) {
     this->status_ = OpenThermStatus::READY;
     this->response_status_ = OpenThermResponseStatus::TIMEOUT;
-    if (this->process_response_callback_ != nullptr) {
-      this->process_response_callback_(this->response_, this->response_status_);
-    }
   }
   else if (status == OpenThermStatus::RESPONSE_INVALID) {
     this->status_ = OpenThermStatus::DELAY;
     this->response_status_ = OpenThermResponseStatus::INVALID;
-    if (this->process_response_callback_ != nullptr) {
-      this->process_response_callback_(this->response_, this->response_status_);
-    }
   }
   else if (status == OpenThermStatus::RESPONSE_READY) {
     this->status_ = OpenThermStatus::DELAY;
-    this->response_status_ = (this->is_responder_ ? this->is_valid_request(this->response_) : this->is_valid_response(this->response_)) ? OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
-    if (this->process_response_callback_ != nullptr) {
-      this->process_response_callback_(this->response_, this->response_status_);
-    }
+    this->response_status_ = (this->is_responder_ ? this->is_valid_request(this->response_) : this->is_valid_response(this->response_)) ?
+      OpenThermResponseStatus::SUCCESS : OpenThermResponseStatus::INVALID;
   }
   else if (status == OpenThermStatus::DELAY) {
     if ((new_timestamp - timestamp) > 100000) {
