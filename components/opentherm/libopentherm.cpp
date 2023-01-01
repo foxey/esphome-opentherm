@@ -339,7 +339,7 @@ const char *OpenTherm::status_to_string(OpenThermStatus status) {
   }
 }
 
-const char *OpenTherm::message_id_to_string(uint32_t frame) {
+const char *OpenTherm::data_id_to_string(uint32_t frame) {
     switch (OpenTherm::get_data_id(frame)) {
   // Class 1: Control and Status Information
         case OpenThermMessageID::STATUS: return "STATUS";

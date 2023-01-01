@@ -25,6 +25,7 @@ class OpenThermComponent : public PollingComponent {
   sensor::Sensor *modulation_sensor_{nullptr};
   sensor::Sensor *boiler_temperature_sensor_{nullptr};
   sensor::Sensor *return_temperature_sensor_{nullptr};
+  sensor::Sensor *room_temperature_sensor_{nullptr};
   binary_sensor::BinarySensor *ch_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *dhw_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *cooling_active_binary_sensor_{nullptr};
@@ -36,6 +37,7 @@ class OpenThermComponent : public PollingComponent {
   opentherm::CustomSwitch *cooling_enabled_switch_{nullptr};
   opentherm::CustomNumber *ch_setpoint_temperature_number_{nullptr};
   opentherm::CustomNumber *dhw_setpoint_temperature_number_{nullptr};
+  opentherm::CustomNumber *room_setpoint_temperature_number_{nullptr};
 
   OpenThermComponent() = default;
 
@@ -54,6 +56,7 @@ class OpenThermComponent : public PollingComponent {
   void set_modulation_sensor(sensor::Sensor *sensor) { modulation_sensor_ = sensor; }
   void set_boiler_temperature_sensor(sensor::Sensor *sensor) { boiler_temperature_sensor_ = sensor; }
   void set_return_temperature_sensor(sensor::Sensor *sensor) { return_temperature_sensor_ = sensor; }
+  void set_room_temperature_sensor(sensor::Sensor *sensor) { room_temperature_sensor_ = sensor; }
   void set_ch_active_binary_sensor(binary_sensor::BinarySensor *sensor) { ch_active_binary_sensor_ = sensor; }
   void set_dhw_active_binary_sensor(binary_sensor::BinarySensor *sensor) { dhw_active_binary_sensor_ = sensor; }
   void set_cooling_active_binary_sensor(binary_sensor::BinarySensor *sensor) { cooling_active_binary_sensor_ = sensor; }
@@ -64,9 +67,8 @@ class OpenThermComponent : public PollingComponent {
   void set_dhw_enabled_switch(opentherm::CustomSwitch *custom_switch) { dhw_enabled_switch_ = custom_switch; }
   void set_cooling_enabled_switch(opentherm::CustomSwitch *custom_switch) { cooling_enabled_switch_ = custom_switch; }
   void set_ch_setpoint_temperature_number(opentherm::CustomNumber *number) { ch_setpoint_temperature_number_ = number; }
-  void set_dhw_setpoint_temperature_number(opentherm::CustomNumber *number) {
-    dhw_setpoint_temperature_number_ = number;
-  }
+  void set_dhw_setpoint_temperature_number(opentherm::CustomNumber *number) { dhw_setpoint_temperature_number_ = number; }
+  void set_room_setpoint_temperature_number(opentherm::CustomNumber *number) { room_setpoint_temperature_number_ = number; }
 
  protected:
   InternalGPIOPin *responder_read_pin_;
@@ -83,6 +85,7 @@ class OpenThermComponent : public PollingComponent {
   bool ch_min_max_read_ = false;
   bool dhw_min_max_read_ = false;
   float confirmed_dhw_setpoint_ = 0;
+  float confirmed_room_setpoint_ = 0;
   uint32_t last_millis_ = 0;
   bool wanted_ch_enabled_ = false;
   bool wanted_dhw_enabled_ = false;

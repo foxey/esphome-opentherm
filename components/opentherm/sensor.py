@@ -20,6 +20,7 @@ CONF_DHW_MAX_TEMPERATURE = "dhw_max_temperature"
 CONF_MODULATION = "modulation"
 CONF_BOILER_TEMPERATURE = "boiler_temperature"
 CONF_RETURN_TEMPERATURE = "return_temperature"
+CONF_ROOM_TEMPERATURE = "room_temperature"
 
 ICON_HOME_THERMOMETER = "mdi:home-thermometer"
 ICON_WATER_THERMOMETER = "mdi:water-thermometer"
@@ -35,6 +36,7 @@ TYPES = [
     CONF_MODULATION,
     CONF_BOILER_TEMPERATURE,
     CONF_RETURN_TEMPERATURE,
+    CONF_ROOM_TEMPERATURE,
 ]
 
 CONFIG_SCHEMA = cv.All(
@@ -68,7 +70,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PRESSURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_BAR,
                 icon=ICON_GAUGE,
-                accuracy_decimals=1,
+                accuracy_decimals=2,
                 device_class=DEVICE_CLASS_PRESSURE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
@@ -82,14 +84,21 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BOILER_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
-                accuracy_decimals=1,
+                accuracy_decimals=2,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_RETURN_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
-                accuracy_decimals=1,
+                accuracy_decimals=2,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_ROOM_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_THERMOMETER,
+                accuracy_decimals=2,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),

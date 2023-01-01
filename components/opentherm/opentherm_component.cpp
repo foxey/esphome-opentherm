@@ -63,6 +63,11 @@ void OpenThermComponent::setup() {
     this->dhw_setpoint_temperature_number_->add_on_state_callback(
         [](float temperature) { ESP_LOGI(TAG, "Request updating DHW setpoint to %f", temperature); });
   }
+  if (this->room_setpoint_temperature_number_) {
+    this->room_setpoint_temperature_number_->setup();
+    this->room_setpoint_temperature_number_->add_on_state_callback(
+        [](float temperature) { ESP_LOGI(TAG, "Request updating ROOM setpoint to %f", temperature); });
+  }
 }
 
 void OpenThermComponent::loop() {
@@ -80,10 +85,19 @@ void OpenThermComponent::loop() {
     this->enqueue_request_(
         OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::CH_SETPOINT,
                              OpenTherm::temperature_to_data(this->ch_setpoint_temperature_number_->state)));
-    if (this->confirmed_dhw_setpoint_ != this->dhw_setpoint_temperature_number_->state) {
-      this->enqueue_request_(
-          OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT,
-                               OpenTherm::temperature_to_data(this->dhw_setpoint_temperature_number_->state)));
+  if (this->dhw_setpoint_temperature_number_) {
+      if (this->confirmed_dhw_setpoint_ != this->dhw_setpoint_temperature_number_->state) {
+        this->enqueue_request_(
+            OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::DHW_SETPOINT,
+                                OpenTherm::temperature_to_data(this->dhw_setpoint_temperature_number_->state)));
+      }
+  }
+    if (this->room_setpoint_temperature_number_) {
+      if (this->confirmed_room_setpoint_ != this->room_setpoint_temperature_number_->state) {
+        this->enqueue_request_(
+            OpenTherm::build_request(OpenThermMessageType::WRITE_DATA, OpenThermMessageID::ROOM_SETPOINT,
+                                OpenTherm::temperature_to_data(this->room_setpoint_temperature_number_->state)));
+      }
     }
   }
 
@@ -156,6 +170,9 @@ void OpenThermComponent::dump_config() {
   if (this->dhw_setpoint_temperature_number_) {
     this->dhw_setpoint_temperature_number_->dump_custom_config("  ", "DHW setpoint temperature:");
   }
+  if (this->room_setpoint_temperature_number_) {
+    this->room_setpoint_temperature_number_->dump_custom_config("  ", "ROOM setpoint temperature:");
+  }
 }
 
 // Private
@@ -163,12 +180,14 @@ void OpenThermComponent::dump_config() {
 void OpenThermComponent::log_message_(uint8_t level, const char *pre_message, uint32_t message) {
   switch (level) {
     case 0:
-      ESP_LOGD(TAG, "%s: %s (%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
-               OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
+      ESP_LOGD(TAG, "%s: %s (%s[%d], 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+               OpenTherm::data_id_to_string(message), (uint32_t) OpenTherm::get_data_id(message),
+               OpenTherm::get_uint16(message));
       break;
     default:
-      ESP_LOGW(TAG, "%s: %s (%s, 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
-               OpenTherm::message_id_to_string(message), OpenTherm::get_uint16(message));
+      ESP_LOGW(TAG, "%s: %s (%s[%d], 0x%04hX)", pre_message, OpenTherm::get_message_type_string(message),
+               OpenTherm::data_id_to_string(message), (uint32_t) OpenTherm::get_data_id(message),
+               OpenTherm::get_uint16(message));
   }
 }
 
@@ -190,33 +209,35 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
           this->publish_switch_state_(this->ch_enabled_switch_, OpenTherm::want_central_heating_active(response));
           this->publish_switch_state_(this->dhw_enabled_switch_, OpenTherm::want_hot_water_active(response));
           this->publish_switch_state_(this->cooling_enabled_switch_, OpenTherm::want_cooling_active(response));
-          controller_response = this->controller_.send_request(response);
-          if (!this->responder_.send_response(controller_response)) {
-            this->log_message_(2, "Responder: Error sending response", controller_response);
-          }
           break;
         case OpenThermMessageID::CH_SETPOINT:
           this->publish_number_state_(this->ch_setpoint_temperature_number_, OpenTherm::get_float(response));
-          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK, OpenThermMessageID::CH_SETPOINT, OpenTherm::get_uint16(response));
-          this->log_message_(0, "Responder: Acknowledge CH_SETPOINT request", controller_response);
-          if (!this->responder_.send_response(controller_response)) {
-            this->log_message_(2, "Responder: Error sending response", controller_response);
-          }
+          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
+                                                          OpenThermMessageID::CH_SETPOINT,
+                                                          OpenTherm::get_uint16(response));
           break;
         case OpenThermMessageID::DHW_SETPOINT:
           this->publish_number_state_(this->dhw_setpoint_temperature_number_, OpenTherm::get_float(response));
-          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK, OpenThermMessageID::DHW_SETPOINT, OpenTherm::get_uint16(response));
-          this->log_message_(0, "Responder: Acknowledge DHW_SETPOINT request", controller_response);
-          if (!this->responder_.send_response(controller_response)) {
-            this->log_message_(2, "Responder: Error sending response", controller_response);
-          }
+          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
+                                                          OpenThermMessageID::DHW_SETPOINT,
+                                                          OpenTherm::get_uint16(response));
           break;
+        case OpenThermMessageID::ROOM_SETPOINT:
+          this->publish_number_state_(this->room_setpoint_temperature_number_, OpenTherm::get_float(response));
+          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
+                                                          OpenThermMessageID::ROOM_SETPOINT,
+                                                          OpenTherm::get_uint16(response));
+          break;
+        case OpenThermMessageID::ROOM_TEMP:
+          this->publish_sensor_state_(this->room_temperature_sensor_, OpenTherm::get_float(response));
+          controller_response = this->controller_.send_request(response);
         default:
           controller_response = this->controller_.send_request(response);
-          if (!this->responder_.send_response(controller_response)) {
-            this->log_message_(2, "Responder: Error sending response", controller_response);
-          }
           break;
+      }
+      this->log_message_(0, "Responder: Acknowledge request", controller_response);
+      if (!this->responder_.send_response(controller_response)) {
+        this->log_message_(2, "Responder: Error sending response", controller_response);
       }
     }
   }
@@ -261,8 +282,13 @@ void OpenThermComponent::process_controller_response_(uint32_t response, OpenThe
           this->confirmed_dhw_setpoint_ = OpenTherm::get_float(response);
         }
         break;
+      case OpenThermMessageID::ROOM_SETPOINT:
+        if (OpenTherm::get_message_type(response) == OpenThermMessageType::WRITE_ACK) {
+          this->confirmed_room_setpoint_ = OpenTherm::get_float(response);
+        }
+        break;
       default:
-        ESP_LOGD(TAG, "Controller: Ignored response with id %s", OpenTherm::message_id_to_string(response));
+        ESP_LOGD(TAG, "Controller: Ignored response with id %s (%d)", OpenTherm::data_id_to_string(response), (uint32_t) OpenTherm::get_data_id(response));
         break;
     }
   } else if (response_status == OpenThermResponseStatus::NONE) {

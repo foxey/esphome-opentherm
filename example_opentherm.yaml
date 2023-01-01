@@ -57,6 +57,8 @@ sensor:
       name: "Boiler Temperature"
     return_temperature:
       name: "Return Temperature"
+    room_temperature:
+      name: "Room Temperature"
 
 binary_sensor:
   - platform: opentherm
@@ -92,3 +94,10 @@ number:
       max_value: 60.0
       step: 0.5
       restore_value: true
+    room_setpoint_temperature:
+      name: "Room Temperature Setpoint"
+      min_value: 5.0
+      max_value: 25.0
+      step: 0.5
+      restore_value: true
+

@@ -51,7 +51,7 @@ public:
   static const char *message_type_to_string(OpenThermMessageType message_type);
   static const char *get_message_type_string(uint32_t message);
   static OpenThermMessageID get_data_id(uint32_t frame);
-  static const char *message_id_to_string(uint32_t frame);
+  static const char *data_id_to_string(uint32_t frame);
   static bool is_valid_request(uint32_t request);
   static bool is_valid_response(uint32_t response);
 
