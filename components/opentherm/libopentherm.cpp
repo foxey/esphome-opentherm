@@ -310,9 +310,7 @@ bool OpenTherm::is_valid_request(uint32_t request)
 }
 
 void OpenTherm::end() {
-  if (this->handle_interrupt_callback_ != NULL) {
-    this->read_pin_->detach_interrupt();
-  }
+  this->read_pin_->detach_interrupt();
 }
 
 const char *OpenTherm::response_status_to_string(OpenThermResponseStatus response_status)
