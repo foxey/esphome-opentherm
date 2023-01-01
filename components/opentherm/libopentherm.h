@@ -65,6 +65,9 @@ public:
   static uint32_t build_get_boiler_temperature_request();
 
   //responses
+  static bool want_central_heating_active(uint32_t request);
+  static bool want_hot_water_active(uint32_t request);
+  static bool want_cooling_active(uint32_t request);
   static bool is_fault(uint32_t response);
   static bool is_central_heating_active(uint32_t response);
   static bool is_hot_water_active(uint32_t response);

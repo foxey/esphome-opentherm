@@ -422,6 +422,20 @@ uint32_t OpenTherm::build_get_boiler_temperature_request() {
   return build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::BOILER_WATER_TEMP, 0);
 }
 
+//parsing requests
+bool OpenTherm::want_central_heating_active(uint32_t request) {
+  return request & 0x100;
+}
+
+bool OpenTherm::want_hot_water_active(uint32_t request) {
+  return request & 0x200;
+}
+
+bool OpenTherm::want_cooling_active(uint32_t request) {
+  return request & 0x400;
+}
+
+
 //parsing responses
 bool OpenTherm::is_fault(uint32_t response) {
   return response & 0x1;

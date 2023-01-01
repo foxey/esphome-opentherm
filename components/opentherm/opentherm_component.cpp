@@ -61,7 +61,7 @@ void OpenThermComponent::setup() {
   if (this->dhw_setpoint_temperature_number_) {
     this->dhw_setpoint_temperature_number_->setup();
     this->dhw_setpoint_temperature_number_->add_on_state_callback(
-        [](float temperature) { ESP_LOGI(TAG, "Request updating CH setpoint to %f", temperature); });
+        [](float temperature) { ESP_LOGI(TAG, "Request updating DHW setpoint to %f", temperature); });
   }
 }
 
@@ -179,12 +179,44 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
     this->log_message_(2, "Responder: Request timeout", response);
   } else if (response_status == OpenThermResponseStatus::INVALID) {
     this->log_message_(2, "Responder: Received invalid response", response);
-  } else {
+  } else if (response_status == OpenThermResponseStatus::SUCCESS) {
     this->log_message_(0, "Responder: Received response", response);
+    // Following code is synchronous and adds a 30~60ms delay in the loop
+    // I am happy to get help to make this (and the OpenTherm::send_bit_ call) asynchronous
     if (OpenTherm::is_valid_request(response)) {
-      uint32_t controller_response = this->controller_.send_request(response);
-      if (!this->responder_.send_response(controller_response)) {
-        this->log_message_(2, "Responder: Error sending response", controller_response);
+      uint32_t controller_response = 0;
+      switch (OpenTherm::get_data_id(response)) {
+        case OpenThermMessageID::STATUS:
+          this->publish_switch_state_(this->ch_enabled_switch_, OpenTherm::want_central_heating_active(response));
+          this->publish_switch_state_(this->dhw_enabled_switch_, OpenTherm::want_hot_water_active(response));
+          this->publish_switch_state_(this->cooling_enabled_switch_, OpenTherm::want_cooling_active(response));
+          controller_response = this->controller_.send_request(response);
+          if (!this->responder_.send_response(controller_response)) {
+            this->log_message_(2, "Responder: Error sending response", controller_response);
+          }
+          break;
+        case OpenThermMessageID::CH_SETPOINT:
+          this->publish_number_state_(this->ch_setpoint_temperature_number_, OpenTherm::get_float(response));
+          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK, OpenThermMessageID::CH_SETPOINT, OpenTherm::get_uint16(response));
+          this->log_message_(0, "Responder: Acknowledge CH_SETPOINT request", controller_response);
+          if (!this->responder_.send_response(controller_response)) {
+            this->log_message_(2, "Responder: Error sending response", controller_response);
+          }
+          break;
+        case OpenThermMessageID::DHW_SETPOINT:
+          this->publish_number_state_(this->dhw_setpoint_temperature_number_, OpenTherm::get_float(response));
+          controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK, OpenThermMessageID::DHW_SETPOINT, OpenTherm::get_uint16(response));
+          this->log_message_(0, "Responder: Acknowledge DHW_SETPOINT request", controller_response);
+          if (!this->responder_.send_response(controller_response)) {
+            this->log_message_(2, "Responder: Error sending response", controller_response);
+          }
+          break;
+        default:
+          controller_response = this->controller_.send_request(response);
+          if (!this->responder_.send_response(controller_response)) {
+            this->log_message_(2, "Responder: Error sending response", controller_response);
+          }
+          break;
       }
     }
   }
@@ -230,6 +262,7 @@ void OpenThermComponent::process_controller_response_(uint32_t response, OpenThe
         }
         break;
       default:
+        ESP_LOGD(TAG, "Controller: Ignored response with id %s", OpenTherm::message_id_to_string(response));
         break;
     }
   } else if (response_status == OpenThermResponseStatus::NONE) {
@@ -253,13 +286,25 @@ void OpenThermComponent::publish_binary_sensor_state_(binary_sensor::BinarySenso
   }
 }
 
+void OpenThermComponent::publish_number_state_(opentherm::CustomNumber *number, float state) {
+  if (number) {
+    number->publish_state(state);
+  }
+}
+
+void OpenThermComponent::publish_switch_state_(opentherm::CustomSwitch *custom_switch, bool state) {
+  if (custom_switch) {
+    custom_switch->publish_state(state);
+  }
+}
+
+
 void OpenThermComponent::set_boiler_status_() {
   // Fields: CH enabled | DHW enabled | cooling | outside temperature compensation | central heating 2
-  unsigned int data = OpenTherm::build_set_boiler_status_request(this->wanted_ch_enabled_,
+  unsigned int status_request = OpenTherm::build_set_boiler_status_request(this->wanted_ch_enabled_,
                                                                   this->wanted_dhw_enabled_,
                                                                   this->wanted_cooling_enabled_);
-  data <<= 8;
-  this->enqueue_request_(OpenTherm::build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::STATUS, data));
+  this->enqueue_request_(status_request);
 }
 
 void OpenThermComponent::enqueue_request_(uint32_t request) {
