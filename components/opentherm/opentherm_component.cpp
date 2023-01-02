@@ -27,12 +27,15 @@ void OpenThermComponent::setup() {
   this->controller_.setup(this->controller_read_pin_, this->controller_write_pin_);
 
   if (this->gateway_enabled_switch_) {
+    this->gateway_enabled_switch_->setup();
     this->gateway_enabled_switch_->add_on_state_callback([this](bool enabled) {
       if (this->gateway_enabled_ != enabled) {
         ESP_LOGI(TAG, "%s GATEWAY", (enabled ? "Enabled" : "Disabled"));
         this->gateway_enabled_ = enabled;
       }
     });
+    this->gateway_enabled_ = this->gateway_enabled_switch_->state;
+    ESP_LOGI(TAG, "%s GATEWAY", (this->gateway_enabled_ ? "Enabled" : "Disabled"));
   }
   if (this->ch_enabled_switch_) {
     this->ch_enabled_switch_->add_on_state_callback([this](bool enabled) {
@@ -83,7 +86,7 @@ void OpenThermComponent::loop() {
     uint32_t request = buffer_.front();
     buffer_.pop();
     this->controller_.send_request_async(request);
-    this->log_message_(0, "Request sent", request);
+    this->log_message_(0, "Controller: Request sent", request);
   }
 
   if (millis() - this->last_millis_ > 2000) {
@@ -218,18 +221,32 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
       uint32_t controller_response = 0;
       switch (OpenTherm::get_data_id(response)) {
         case OpenThermMessageID::STATUS:
-          this->publish_switch_state_(this->ch_enabled_switch_, OpenTherm::want_central_heating_active(response));
-          this->publish_switch_state_(this->dhw_enabled_switch_, OpenTherm::want_hot_water_active(response));
-          this->publish_switch_state_(this->cooling_enabled_switch_, OpenTherm::want_cooling_active(response));
+          if (this->gateway_enabled_) {
+            this->publish_switch_state_(this->ch_enabled_switch_, OpenTherm::want_central_heating_active(response));
+            this->publish_switch_state_(this->dhw_enabled_switch_, OpenTherm::want_hot_water_active(response));
+            this->publish_switch_state_(this->cooling_enabled_switch_, OpenTherm::want_cooling_active(response));
+          }
+          controller_response = OpenTherm::build_set_boiler_status_resonse( response,
+                                  this->get_binary_sensor_state_(this->fault_binary_sensor_),
+                                  this->get_binary_sensor_state_(this->ch_active_binary_sensor_),
+                                  this->get_binary_sensor_state_(this->dhw_active_binary_sensor_),
+                                  this->get_binary_sensor_state_(this->flame_active_binary_sensor_),
+                                  this->get_binary_sensor_state_(this->cooling_active_binary_sensor_),
+                                  false,
+                                  this->get_binary_sensor_state_(this->diagnostic_binary_sensor_));
           break;
         case OpenThermMessageID::CH_SETPOINT:
-          this->publish_number_state_(this->ch_setpoint_temperature_number_, OpenTherm::get_float(response));
+          if (this->gateway_enabled_) {
+            this->publish_number_state_(this->ch_setpoint_temperature_number_, OpenTherm::get_float(response));
+          }
           controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
                                                           OpenThermMessageID::CH_SETPOINT,
                                                           OpenTherm::get_uint16(response));
           break;
         case OpenThermMessageID::DHW_SETPOINT:
-          this->publish_number_state_(this->dhw_setpoint_temperature_number_, OpenTherm::get_float(response));
+          if (this->gateway_enabled_) {
+            this->publish_number_state_(this->dhw_setpoint_temperature_number_, OpenTherm::get_float(response));
+          }
           controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
                                                           OpenThermMessageID::DHW_SETPOINT,
                                                           OpenTherm::get_uint16(response));
@@ -321,6 +338,14 @@ void OpenThermComponent::publish_sensor_state_(sensor::Sensor *sensor, float sta
 void OpenThermComponent::publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state) {
   if (sensor) {
     sensor->publish_state(state);
+  }
+}
+
+bool OpenThermComponent::get_binary_sensor_state_(binary_sensor::BinarySensor *sensor) {
+  if (sensor) {
+    return sensor->state;
+  } else {
+    return false;
   }
 }
 

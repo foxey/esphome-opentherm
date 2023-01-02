@@ -407,8 +407,16 @@ const char *OpenTherm::data_id_to_string(uint32_t frame) {
 
 //building requests
 
-uint32_t OpenTherm::build_set_boiler_status_request(bool enable_central_heating, bool enable_hot_water, bool enable_cooling, bool enable_outside_temperature_compensation, bool enable_central_heating2) {
-  unsigned int data = enable_central_heating | (enable_hot_water << 1) | (enable_cooling << 2) | (enable_outside_temperature_compensation << 3) | (enable_central_heating2 << 4);
+uint32_t OpenTherm::build_set_boiler_status_request(bool enable_central_heating,
+                                                    bool enable_hot_water,
+                                                    bool enable_cooling,
+                                                    bool enable_outside_temperature_compensation,
+                                                    bool enable_central_heating2) {
+  unsigned int data = enable_central_heating |
+                      (enable_hot_water << 1) |
+                      (enable_cooling << 2) |
+                      (enable_outside_temperature_compensation << 3) |
+                      (enable_central_heating2 << 4);
   data <<= 8;
   return build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::STATUS, data);
 }
@@ -420,6 +428,26 @@ uint32_t OpenTherm::build_set_boiler_temperature_request(float temperature) {
 
 uint32_t OpenTherm::build_get_boiler_temperature_request() {
   return build_request(OpenThermMessageType::READ_DATA, OpenThermMessageID::BOILER_WATER_TEMP, 0);
+}
+
+//building responses
+uint32_t OpenTherm::build_set_boiler_status_resonse(uint32_t request,
+                                                    bool fault_indicator,
+                                                    bool central_heating_active,
+                                                    bool hot_water_active,
+                                                    bool flame_status,
+                                                    bool cooling_active,
+                                                    bool central_heating2_active,
+                                                    bool diagnostic_indicator) {
+  unsigned int data = OpenTherm::get_uint16(request) |
+                      fault_indicator |
+                      (central_heating_active << 1) |
+                      (hot_water_active << 2) |
+                      (flame_status << 3) |
+                      (cooling_active << 4) |
+                      (central_heating2_active << 5) |
+                      (diagnostic_indicator << 6);
+  return build_request(OpenThermMessageType::READ_ACK, OpenThermMessageID::STATUS, data);
 }
 
 //parsing requests

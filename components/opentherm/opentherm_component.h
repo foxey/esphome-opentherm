@@ -104,6 +104,7 @@ class OpenThermComponent : public PollingComponent {
   
   void publish_sensor_state_(sensor::Sensor *sensor, float state);
   void publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state);
+  bool get_binary_sensor_state_(binary_sensor::BinarySensor *sensor);
   void publish_number_state_(opentherm::CustomNumber *number, float state);
   void publish_switch_state_(opentherm::CustomSwitch *custom_switch, bool state);
 };

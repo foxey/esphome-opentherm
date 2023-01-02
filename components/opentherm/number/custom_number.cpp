@@ -1,17 +1,24 @@
 #include "esphome/core/log.h"
 #include "custom_number.h"
-#include "../consts.h"
 
 namespace esphome {
 namespace opentherm {
 
+static const char *const TAG = "custom_number";
+
+
 void CustomNumber::setup() {
-  float value{NAN};
-  if (!this->restore_value_) {
-    value = this->initial_value_;
-  } else {
+  ESP_LOGCONFIG(TAG, "Setting up Custom Number '%s'...", this->name_.c_str());
+
+   float value{NAN};
+  value = this->initial_value_;
+  if (this->restore_value_) {
     this->pref_ = global_preferences->make_preference<float>(this->get_object_id_hash());
-    this->pref_.load(&value);
+    if (this->pref_.load(&value)) {
+      ESP_LOGCONFIG(TAG, "Restoring state to %f", value);
+    } else {
+      ESP_LOGCONFIG(TAG, "Restoring state failed");
+    }
   }
   if (std::isnan(value)) {
     value = this->traits.get_min_value();
