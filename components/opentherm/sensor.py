@@ -21,6 +21,8 @@ CONF_MODULATION = "modulation"
 CONF_BOILER_TEMPERATURE = "boiler_temperature"
 CONF_RETURN_TEMPERATURE = "return_temperature"
 CONF_ROOM_TEMPERATURE = "room_temperature"
+CONF_ROOM_SETPOINT_TEMPERATURE = "room_setpoint_temperature"
+CONF_CH_SETPOINT_TEMPERATURE = "ch_setpoint_temperature"
 
 ICON_HOME_THERMOMETER = "mdi:home-thermometer"
 ICON_WATER_THERMOMETER = "mdi:water-thermometer"
@@ -37,6 +39,8 @@ TYPES = [
     CONF_BOILER_TEMPERATURE,
     CONF_RETURN_TEMPERATURE,
     CONF_ROOM_TEMPERATURE,
+    CONF_ROOM_SETPOINT_TEMPERATURE,
+    CONF_CH_SETPOINT_TEMPERATURE,
 ]
 
 CONFIG_SCHEMA = cv.All(
@@ -98,6 +102,20 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ROOM_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
+                accuracy_decimals=2,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_ROOM_SETPOINT_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_HOME_THERMOMETER,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_CH_SETPOINT_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_HOME_THERMOMETER,
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,

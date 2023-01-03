@@ -26,6 +26,8 @@ class OpenThermComponent : public PollingComponent {
   sensor::Sensor *boiler_temperature_sensor_{nullptr};
   sensor::Sensor *return_temperature_sensor_{nullptr};
   sensor::Sensor *room_temperature_sensor_{nullptr};
+  sensor::Sensor *room_setpoint_temperature_sensor_{nullptr};
+  sensor::Sensor *ch_setpoint_temperature_sensor_{nullptr};
   binary_sensor::BinarySensor *ch_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *dhw_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *cooling_active_binary_sensor_{nullptr};
@@ -58,6 +60,8 @@ class OpenThermComponent : public PollingComponent {
   void set_boiler_temperature_sensor(sensor::Sensor *sensor) { boiler_temperature_sensor_ = sensor; }
   void set_return_temperature_sensor(sensor::Sensor *sensor) { return_temperature_sensor_ = sensor; }
   void set_room_temperature_sensor(sensor::Sensor *sensor) { room_temperature_sensor_ = sensor; }
+  void set_room_setpoint_temperature_sensor(sensor::Sensor *sensor) { room_setpoint_temperature_sensor_ = sensor; }
+  void set_ch_setpoint_temperature_sensor(sensor::Sensor *sensor) { ch_setpoint_temperature_sensor_ = sensor; }
   void set_ch_active_binary_sensor(binary_sensor::BinarySensor *sensor) { ch_active_binary_sensor_ = sensor; }
   void set_dhw_active_binary_sensor(binary_sensor::BinarySensor *sensor) { dhw_active_binary_sensor_ = sensor; }
   void set_cooling_active_binary_sensor(binary_sensor::BinarySensor *sensor) { cooling_active_binary_sensor_ = sensor; }

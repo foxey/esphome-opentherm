@@ -169,6 +169,8 @@ void OpenThermComponent::dump_config() {
   LOG_SENSOR("  ", "Boiler temperature:", this->boiler_temperature_sensor_);
   LOG_SENSOR("  ", "Return temperature:", this->return_temperature_sensor_);
   LOG_SENSOR("  ", "Room temperature:", this->room_temperature_sensor_);
+  LOG_SENSOR("  ", "Room setpoint temperature:", this->room_setpoint_temperature_sensor_);
+  LOG_SENSOR("  ", "CH setpoint temperature:", this->ch_setpoint_temperature_sensor_);
   LOG_BINARY_SENSOR("  ", "CH active:", this->ch_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "DHW active:", this->dhw_active_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "Cooling active:", this->cooling_active_binary_sensor_);
@@ -186,7 +188,7 @@ void OpenThermComponent::dump_config() {
     this->dhw_setpoint_temperature_number_->dump_custom_config("  ", "DHW setpoint temperature:");
   }
   if (this->room_setpoint_temperature_number_) {
-    this->room_setpoint_temperature_number_->dump_custom_config("  ", "ROOM setpoint temperature:");
+    this->room_setpoint_temperature_number_->dump_custom_config("  ", "Room setpoint temperature:");
   }
 }
 
@@ -236,6 +238,7 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
                                   this->get_binary_sensor_state_(this->diagnostic_binary_sensor_));
           break;
         case OpenThermMessageID::CH_SETPOINT:
+          this->publish_sensor_state_(this->ch_setpoint_temperature_sensor_, OpenTherm::get_float(response));
           if (this->gateway_enabled_) {
             this->publish_number_state_(this->ch_setpoint_temperature_number_, OpenTherm::get_float(response));
           }
@@ -252,10 +255,13 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
                                                           OpenTherm::get_uint16(response));
           break;
         case OpenThermMessageID::ROOM_SETPOINT:
-          this->publish_number_state_(this->room_setpoint_temperature_number_, OpenTherm::get_float(response));
+          this->publish_sensor_state_(this->room_setpoint_temperature_sensor_, OpenTherm::get_float(response));
           controller_response = OpenTherm::build_response(OpenThermMessageType::WRITE_ACK,
                                                           OpenThermMessageID::ROOM_SETPOINT,
                                                           OpenTherm::get_uint16(response));
+          if (this->gateway_enabled_) {
+            this->publish_number_state_(this->room_setpoint_temperature_number_, OpenTherm::get_float(response));
+          }
           break;
         case OpenThermMessageID::ROOM_TEMP:
           this->publish_sensor_state_(this->room_temperature_sensor_, OpenTherm::get_float(response));
