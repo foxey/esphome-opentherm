@@ -6,7 +6,7 @@
 namespace esphome {
 namespace opentherm {
 
-class CustomSwitch : public Component, public switch_::Switch {
+class Switch : public Component, public switch_::Switch {
  public:
   void setup() override;
 

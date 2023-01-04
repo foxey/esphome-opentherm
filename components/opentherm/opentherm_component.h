@@ -5,8 +5,8 @@
 #include "esphome/core/hal.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
-#include "switch/custom_switch.h"
-#include "number/custom_number.h"
+#include "switch/switch.h"
+#include "number/number.h"
 #include "consts.h"
 #include "enums.h"
 #include "libopentherm.h"
@@ -34,13 +34,13 @@ class OpenThermComponent : public PollingComponent {
   binary_sensor::BinarySensor *flame_active_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *fault_binary_sensor_{nullptr};
   binary_sensor::BinarySensor *diagnostic_binary_sensor_{nullptr};
-  opentherm::CustomSwitch *gateway_enabled_switch_{nullptr};
-  opentherm::CustomSwitch *ch_enabled_switch_{nullptr};
-  opentherm::CustomSwitch *dhw_enabled_switch_{nullptr};
-  opentherm::CustomSwitch *cooling_enabled_switch_{nullptr};
-  opentherm::CustomNumber *ch_setpoint_temperature_number_{nullptr};
-  opentherm::CustomNumber *dhw_setpoint_temperature_number_{nullptr};
-  opentherm::CustomNumber *room_setpoint_temperature_number_{nullptr};
+  opentherm::Switch *gateway_enabled_switch_{nullptr};
+  opentherm::Switch *ch_enabled_switch_{nullptr};
+  opentherm::Switch *dhw_enabled_switch_{nullptr};
+  opentherm::Switch *cooling_enabled_switch_{nullptr};
+  opentherm::Number *ch_setpoint_temperature_number_{nullptr};
+  opentherm::Number *dhw_setpoint_temperature_number_{nullptr};
+  opentherm::Number *room_setpoint_temperature_number_{nullptr};
 
   OpenThermComponent() = default;
 
@@ -68,13 +68,13 @@ class OpenThermComponent : public PollingComponent {
   void set_flame_active_binary_sensor(binary_sensor::BinarySensor *sensor) { flame_active_binary_sensor_ = sensor; }
   void set_fault_binary_sensor(binary_sensor::BinarySensor *sensor) { fault_binary_sensor_ = sensor; }
   void set_diagnostic_binary_sensor(binary_sensor::BinarySensor *sensor) { diagnostic_binary_sensor_ = sensor; }
-  void set_gateway_enabled_switch(opentherm::CustomSwitch *custom_switch) { gateway_enabled_switch_ = custom_switch; }
-  void set_ch_enabled_switch(opentherm::CustomSwitch *custom_switch) { ch_enabled_switch_ = custom_switch; }
-  void set_dhw_enabled_switch(opentherm::CustomSwitch *custom_switch) { dhw_enabled_switch_ = custom_switch; }
-  void set_cooling_enabled_switch(opentherm::CustomSwitch *custom_switch) { cooling_enabled_switch_ = custom_switch; }
-  void set_ch_setpoint_temperature_number(opentherm::CustomNumber *number) { ch_setpoint_temperature_number_ = number; }
-  void set_dhw_setpoint_temperature_number(opentherm::CustomNumber *number) { dhw_setpoint_temperature_number_ = number; }
-  void set_room_setpoint_temperature_number(opentherm::CustomNumber *number) { room_setpoint_temperature_number_ = number; }
+  void set_gateway_enabled_switch(opentherm::Switch *custom_switch) { gateway_enabled_switch_ = custom_switch; }
+  void set_ch_enabled_switch(opentherm::Switch *custom_switch) { ch_enabled_switch_ = custom_switch; }
+  void set_dhw_enabled_switch(opentherm::Switch *custom_switch) { dhw_enabled_switch_ = custom_switch; }
+  void set_cooling_enabled_switch(opentherm::Switch *custom_switch) { cooling_enabled_switch_ = custom_switch; }
+  void set_ch_setpoint_temperature_number(opentherm::Number *number) { ch_setpoint_temperature_number_ = number; }
+  void set_dhw_setpoint_temperature_number(opentherm::Number *number) { dhw_setpoint_temperature_number_ = number; }
+  void set_room_setpoint_temperature_number(opentherm::Number *number) { room_setpoint_temperature_number_ = number; }
 
  protected:
   InternalGPIOPin *responder_read_pin_;
@@ -109,8 +109,8 @@ class OpenThermComponent : public PollingComponent {
   void publish_sensor_state_(sensor::Sensor *sensor, float state);
   void publish_binary_sensor_state_(binary_sensor::BinarySensor *sensor, bool state);
   bool get_binary_sensor_state_(binary_sensor::BinarySensor *sensor);
-  void publish_number_state_(opentherm::CustomNumber *number, float state);
-  void publish_switch_state_(opentherm::CustomSwitch *custom_switch, bool state);
+  void publish_number_state_(opentherm::Number *number, float state);
+  void publish_switch_state_(opentherm::Switch *custom_switch, bool state);
 };
 
 }  // namespace opentherm

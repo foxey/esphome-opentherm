@@ -10,7 +10,7 @@ from ...opentherm import (
 )
 from .. import opentherm
 
-CustomSwitch = opentherm.class_("CustomSwitch", switch.Switch, cg.Component)
+Switch = opentherm.class_("Switch", switch.Switch, cg.Component)
 
 CONF_GATEWAY_ENABLED = "gateway_enabled"
 CONF_CH_ENABLED = "ch_enabled"
@@ -33,19 +33,19 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(CONF_OPENTHERM_ID): cv.use_id(OpenThermComponent),
             cv.Required(CONF_GATEWAY_ENABLED): switch.switch_schema(
-                class_=CustomSwitch,
+                class_=Switch,
                 icon=ICON_THERMOSTAT,
             ),
             cv.Required(CONF_CH_ENABLED): switch.switch_schema(
-                class_=CustomSwitch,
+                class_=Switch,
                 icon=ICON_RADIATOR,
             ),
             cv.Optional(CONF_DHW_ENABLED): switch.switch_schema(
-                class_=CustomSwitch,
+                class_=Switch,
                 icon=ICON_WATER_BOILER,
             ),
             cv.Optional(CONF_COOLING_ENABLED): switch.switch_schema(
-                class_=CustomSwitch,
+                class_=Switch,
                 icon=ICON_SNOWFLAKE,
             ),
         }

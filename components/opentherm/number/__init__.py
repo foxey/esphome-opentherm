@@ -18,7 +18,7 @@ from ...opentherm import (
 )
 from .. import opentherm
 
-CustomNumber = opentherm.class_("CustomNumber", number.Number, cg.Component)
+Number = opentherm.class_("Number", number.Number, cg.Component)
 
 CONF_CH_SETPOINT_TEMPERATURE = "ch_setpoint_temperature"
 CONF_DHW_SETPOINT_TEMPERATURE = "dhw_setpoint_temperature"
@@ -39,7 +39,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_OPENTHERM_ID): cv.use_id(OpenThermComponent),
             cv.Required(CONF_CH_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
                 {
-                    cv.GenerateID(): cv.declare_id(CustomNumber),
+                    cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
                     cv.Required(CONF_MIN_VALUE): cv.float_,
                     cv.Required(CONF_STEP): cv.positive_float,
@@ -56,7 +56,7 @@ CONFIG_SCHEMA = cv.All(
             ).extend(cv.COMPONENT_SCHEMA),
             cv.Optional(CONF_DHW_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
                 {
-                    cv.GenerateID(): cv.declare_id(CustomNumber),
+                    cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
                     cv.Required(CONF_MIN_VALUE): cv.float_,
                     cv.Required(CONF_STEP): cv.positive_float,
@@ -73,7 +73,7 @@ CONFIG_SCHEMA = cv.All(
             ).extend(cv.COMPONENT_SCHEMA),
             cv.Optional(CONF_ROOM_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
                 {
-                    cv.GenerateID(): cv.declare_id(CustomNumber),
+                    cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
                     cv.Required(CONF_MIN_VALUE): cv.float_,
                     cv.Required(CONF_STEP): cv.positive_float,

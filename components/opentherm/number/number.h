@@ -7,7 +7,7 @@
 namespace esphome {
 namespace opentherm {
 
-class CustomNumber : public Component, public number::Number {
+class Number : public Component, public number::Number {
  public:
   void set_restore_value(bool restore_value) { this->restore_value_ = restore_value; }
   void set_initial_value(float initial_value) { this->initial_value_ = initial_value; }

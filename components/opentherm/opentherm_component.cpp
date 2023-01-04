@@ -355,13 +355,13 @@ bool OpenThermComponent::get_binary_sensor_state_(binary_sensor::BinarySensor *s
   }
 }
 
-void OpenThermComponent::publish_number_state_(opentherm::CustomNumber *number, float state) {
+void OpenThermComponent::publish_number_state_(opentherm::Number *number, float state) {
   if (number) {
     number->publish_state(state);
   }
 }
 
-void OpenThermComponent::publish_switch_state_(opentherm::CustomSwitch *custom_switch, bool state) {
+void OpenThermComponent::publish_switch_state_(opentherm::Switch *custom_switch, bool state) {
   if (custom_switch) {
     custom_switch->publish_state(state);
   }

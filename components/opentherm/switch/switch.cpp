@@ -1,13 +1,13 @@
-#include "custom_switch.h"
+#include "switch.h"
 #include "esphome/core/log.h"
+#include "../consts.h"
 
 namespace esphome {
 namespace opentherm {
 
-static const char *const TAG = "custom_switch";
 
-void CustomSwitch::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Custom Switch '%s'...", this->name_.c_str());
+void Switch::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up Switch '%s'...", this->name_.c_str());
 
   bool initial_state = this->get_initial_state_with_restore_mode().value_or(false);
   ESP_LOGCONFIG(TAG, "Restoring state to %s", initial_state ? "ON" : "OFF");
@@ -21,7 +21,7 @@ void CustomSwitch::setup() {
   this->publish_state(initial_state);
 }
 
-void CustomSwitch::write_state(bool state) { this->publish_state(state); };
+void Switch::write_state(bool state) { this->publish_state(state); };
 
 }  // namespace opentherm
 }  // namespace esphome
