@@ -79,6 +79,16 @@ void OpenThermComponent::setup() {
     this->room_setpoint_temperature_number_->add_on_state_callback(
         [](float temperature) { ESP_LOGI(TAG, "Request updating ROOM setpoint to %f", temperature); });
   }
+
+  if (this->opentherm_output_) {
+    ESP_LOGCONFIG(TAG, "Initializing output component");
+    this->opentherm_output_->set_ch_enable_switch(this->ch_enabled_switch_);
+    this->opentherm_output_->set_gateway_enabled_switch(this->gateway_enabled_switch_);
+    this->opentherm_output_->set_control_setpoint_number(this->ch_setpoint_temperature_number_);
+    this->opentherm_output_->set_min_temperature_sensor_(this->ch_min_temperature_sensor_);
+    this->opentherm_output_->set_max_temperature_sensor_(this->ch_max_temperature_sensor_);
+  }
+  
 }
 
 void OpenThermComponent::loop() {

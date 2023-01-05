@@ -32,7 +32,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(CONF_OPENTHERM_ID): cv.use_id(OpenThermComponent),
-            cv.Required(CONF_GATEWAY_ENABLED): switch.switch_schema(
+            cv.Optional(CONF_GATEWAY_ENABLED): switch.switch_schema(
                 class_=Switch,
                 icon=ICON_THERMOSTAT,
             ),

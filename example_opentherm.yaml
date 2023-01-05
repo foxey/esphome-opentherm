@@ -106,3 +106,6 @@ number:
       initial_value: 15.0
       restore_value: true
 
+output:
+  - platform: opentherm
+    id: opentherm_output

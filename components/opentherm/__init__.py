@@ -12,7 +12,7 @@ CONF_CONTROLLER_WRITE_PIN = "controller_write_pin"
 
 CODEOWNERS = ["@foxey"]
 DEPENDENCIES = []
-AUTO_LOAD = ["sensor", "binary_sensor", "switch", "number"]
+AUTO_LOAD = ["sensor", "binary_sensor", "switch", "number", "output"]
 
 CONF_OPENTHERM_ID = "opentherm_id"
 

@@ -7,6 +7,7 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "switch/switch.h"
 #include "number/number.h"
+#include "output/output.h"
 #include "consts.h"
 #include "enums.h"
 #include "libopentherm.h"
@@ -41,6 +42,7 @@ class OpenThermComponent : public PollingComponent {
   opentherm::Number *ch_setpoint_temperature_number_{nullptr};
   opentherm::Number *dhw_setpoint_temperature_number_{nullptr};
   opentherm::Number *room_setpoint_temperature_number_{nullptr};
+  opentherm::OpenThermFloatOutput *opentherm_output_{nullptr};
 
   OpenThermComponent() = default;
 
@@ -75,7 +77,7 @@ class OpenThermComponent : public PollingComponent {
   void set_ch_setpoint_temperature_number(opentherm::Number *number) { ch_setpoint_temperature_number_ = number; }
   void set_dhw_setpoint_temperature_number(opentherm::Number *number) { dhw_setpoint_temperature_number_ = number; }
   void set_room_setpoint_temperature_number(opentherm::Number *number) { room_setpoint_temperature_number_ = number; }
-
+  void set_opentherm_output(opentherm::OpenThermFloatOutput *output) { opentherm_output_ = output; }
  protected:
   InternalGPIOPin *responder_read_pin_;
   InternalGPIOPin *responder_write_pin_;
@@ -93,7 +95,7 @@ class OpenThermComponent : public PollingComponent {
   float confirmed_dhw_setpoint_ = 0;
   float confirmed_room_setpoint_ = 0;
   uint32_t last_millis_ = 0;
-  bool gateway_enabled_ = false;
+  bool gateway_enabled_ = true;
   bool wanted_ch_enabled_ = false;
   bool wanted_dhw_enabled_ = false;
   bool wanted_cooling_enabled_ = false;
