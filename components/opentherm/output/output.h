@@ -13,10 +13,10 @@ namespace opentherm {
 class OpenThermFloatOutput : public output::FloatOutput, public Component {
  public:
   void set_ch_enable_switch(opentherm::Switch *ch_enable_switch) { ch_enabled_switch_ = ch_enable_switch; }
-  void set_gateway_enabled_switch(opentherm::Switch *gateway_enabled_switch) { gateway_enabled_switch_ = gateway_enabled_switch; }
-  void set_control_setpoint_number(opentherm::Number *control_setpoint_number) { control_setpoint_number_ = control_setpoint_number; }
-  void set_min_temperature_sensor_(sensor::Sensor *ch_min_temperature_sensor_) { ch_min_temperature_sensor_ = ch_min_temperature_sensor_; }
-  void set_max_temperature_sensor_(sensor::Sensor *ch_max_temperature_sensor_) { ch_max_temperature_sensor_ = ch_max_temperature_sensor_; }
+  void set_gateway_enabled_switch(opentherm::Switch *gateway_enabled_switch) { this->gateway_enabled_switch_ = gateway_enabled_switch; }
+  void set_control_setpoint_number(opentherm::Number *control_setpoint_number) { this->control_setpoint_number_ = control_setpoint_number; }
+  void set_min_temperature_sensor_(sensor::Sensor *ch_min_temperature_sensor) { this->ch_min_temperature_sensor_ = ch_min_temperature_sensor; }
+  void set_max_temperature_sensor_(sensor::Sensor *ch_max_temperature_sensor) { this->ch_max_temperature_sensor_ = ch_max_temperature_sensor; }
   void dump_config() override;
 
  protected:

@@ -120,6 +120,13 @@ void OpenThermComponent::loop() {
                                 OpenTherm::temperature_to_data(this->room_setpoint_temperature_number_->state)));
       }
     }
+
+    if (this->room_temperature_sensor_ && millis() - this->room_temperature_last_millis_ > 5000) {
+      this->room_temperature_last_millis_ = millis();
+      if (this->room_setpoint_temperature_sensor_->has_state()) {
+        this->publish_sensor_state_(this->room_temperature_sensor_, this->room_temperature_sensor_->state);
+      }
+    }
   }
 
 
@@ -274,6 +281,7 @@ void OpenThermComponent::process_responder_response_(uint32_t response, OpenTher
           }
           break;
         case OpenThermMessageID::ROOM_TEMP:
+          this->room_temperature_last_millis_ = millis();
           this->publish_sensor_state_(this->room_temperature_sensor_, OpenTherm::get_float(response));
           controller_response = this->controller_.send_request(response);
         default:

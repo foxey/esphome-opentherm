@@ -25,10 +25,22 @@ void OpenThermFloatOutput::write_state(float state) {
   float ch_max_temperature = 54.9;
 
   if (this->ch_min_temperature_sensor_) {
-    ch_min_temperature = this->ch_min_temperature_sensor_->state;
+    if (this->ch_min_temperature_sensor_->has_state()) {
+      ch_min_temperature = this->ch_min_temperature_sensor_->state;
+    // } else {
+    //   ESP_LOGW(TAG, "Output: minimum CH temperature sensor has no state");
+    }
+  } else {
+    ESP_LOGW(TAG, "Output: using default minimum CH temperature (%f°C)", ch_min_temperature);
   }
   if (this->ch_max_temperature_sensor_) {
-    ch_max_temperature = this->ch_max_temperature_sensor_->state;
+    if (this->ch_max_temperature_sensor_->has_state()) {
+      ch_max_temperature = this->ch_max_temperature_sensor_->state;
+    // } else {
+    //   ESP_LOGW(TAG, "Output: maximum CH temperature sensor has no state");
+    }
+  // } else {
+  //   ESP_LOGW(TAG, "Output: using default maximum CH temperature (%f°C)", ch_max_temperature);
   }
 
   if (state > 0.0) {

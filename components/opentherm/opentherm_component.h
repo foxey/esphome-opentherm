@@ -95,6 +95,7 @@ class OpenThermComponent : public PollingComponent {
   float confirmed_dhw_setpoint_ = 0;
   float confirmed_room_setpoint_ = 0;
   uint32_t last_millis_ = 0;
+  uint32_t room_temperature_last_millis_ = 0;
   bool gateway_enabled_ = true;
   bool wanted_ch_enabled_ = false;
   bool wanted_dhw_enabled_ = false;
