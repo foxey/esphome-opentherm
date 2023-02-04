@@ -6,7 +6,6 @@ esp8266:
 
 # Enable Home Assistant API
 api:
-  password: !secret ha_api_password
   encryption:
     key: !secret ha_api_encryption_key
 
