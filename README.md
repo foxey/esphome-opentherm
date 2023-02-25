@@ -1,9 +1,5 @@
 [![build](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yaml/badge.svg)](https://github.com/foxey/esphome-opentherm/actions/workflows/build.yaml)
 
-# Work in progress!
-
-This component is not actually working until this notice has been removed.
-
 # What does this implement?
 
 This component provides support for opentherm devices such as:
