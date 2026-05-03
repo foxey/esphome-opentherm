@@ -37,7 +37,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(CONF_OPENTHERM_ID): cv.use_id(OpenThermComponent),
-            cv.Required(CONF_CH_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
+            cv.Required(CONF_CH_SETPOINT_TEMPERATURE): number.number_schema(Number).extend(
                 {
                     cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
@@ -54,7 +54,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_RESTORE_VALUE): cv.boolean,
                 }
             ).extend(cv.COMPONENT_SCHEMA),
-            cv.Optional(CONF_DHW_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
+            cv.Optional(CONF_DHW_SETPOINT_TEMPERATURE): number.number_schema(Number).extend(
                 {
                     cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
@@ -71,7 +71,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_RESTORE_VALUE): cv.boolean,
                 }
             ).extend(cv.COMPONENT_SCHEMA),
-            cv.Optional(CONF_ROOM_SETPOINT_TEMPERATURE): number.NUMBER_SCHEMA.extend(
+            cv.Optional(CONF_ROOM_SETPOINT_TEMPERATURE): number.number_schema(Number).extend(
                 {
                     cv.GenerateID(): cv.declare_id(Number),
                     cv.Required(CONF_MAX_VALUE): cv.float_,
